@@ -90,4 +90,46 @@ export class MessageRepository {
       .sRem(inboxKey, messageId)
       .exec();
   }
+
+    /**
+   * Pull all pending messages for a recipient and delete them immediately.
+   * This is "deliver once" behavior we want or expect.
+   */
+  async pullPending(
+    recipientUserId: string
+  ): Promise<Array<{ messageId: string; ciphertext: string; createdAt: number }>> {
+    const inboxKey = `once:inbox:${recipientUserId}`;
+
+    const messageIds = await redis.sMembers(inboxKey);
+    if (messageIds.length === 0) return [];
+
+    const msgKeys = messageIds.map((id) => `once:msg:${id}`);
+    const values = await redis.mGet(msgKeys);
+
+    const messages: Array<{ messageId: string; ciphertext: string; createdAt: number }> = [];
+
+    for (let i = 0; i < messageIds.length; i++) {
+      const raw = values[i];
+      if (!raw) continue;
+      try {
+        const parsed = JSON.parse(raw) as { ciphertext: string; createdAt: number };
+        messages.push({
+          messageId: messageIds[i],
+          ciphertext: parsed.ciphertext,
+          createdAt: parsed.createdAt,
+        });
+      } catch {
+        // ignore malformed
+      }
+    }
+
+    // Delete message keys + remove from inbox
+    const multi = redis.multi();
+    if (msgKeys.length > 0) multi.del(msgKeys);
+    multi.sRem(inboxKey, messageIds);
+    await multi.exec();
+
+    return messages;
+  }
+
 }

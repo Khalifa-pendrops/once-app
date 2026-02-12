@@ -82,6 +82,16 @@ export const messageRoutes: FastifyPluginAsync = async (app: FastifyInstance) =>
     await service.ackMessage(userId, request.params.messageId);
     return reply.code(200).send({ status: "acknowledged" });
   }
+  );
+  
+  app.post(
+  "/messages/pull",
+  { preHandler: requireAuth },
+  async (request, reply) => {
+    const userId = request.user.sub;
+    const messages = await service.pullPending(userId);
+    return reply.code(200).send({ messages });
+  }
 );
 
 };

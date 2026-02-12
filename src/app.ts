@@ -5,6 +5,9 @@ import dotenv from "dotenv";
 import fastifyJwt from "@fastify/jwt";
 import { redisHealthCheck } from "./redis/health";
 import { messageRoutes } from "./modules/messages/message.routes";
+import fastifyWebsocket from "@fastify/websocket";
+import { wsRoutes } from "./modules/ws/ws.routes";
+
 
 
 
@@ -48,7 +51,8 @@ export function buildApp(): FastifyInstance {
   });
   
   app.register(messageRoutes);
-
+  app.register(fastifyWebsocket);
+  app.register(wsRoutes);
 
 
   // All auth endpoints live under /auth/*
