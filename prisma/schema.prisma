@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  devices Device[]
+
+  @@map("users")
+}
+
+model Device {
+  id         String    @id @default(uuid())
+  userId     String
+  deviceName String
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime?
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publicKeys PublicKey[]
+
+  @@index([userId])
+  @@map("devices")
+}
+
+model PublicKey {
+  id        String    @id @default(uuid())
+  deviceId  String
+  keyType   String
+  publicKey String
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId])
+  @@map("public_keys")
+}
