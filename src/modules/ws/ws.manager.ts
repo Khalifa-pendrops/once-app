@@ -1,29 +1,58 @@
 import type { WebSocket } from "ws";
 
-
 /**
- * Tracks active WebSocket connections per user.
- * In production, this becomes Redis PubSub or a gateway.
+ * userId -> (deviceId -> socket)
  */
+
 class WsManager {
-  private connections = new Map<string, WebSocket>();
+  private readonly connections = new Map<string, Map<string, WebSocket>>();
 
-
-  add(userId: string, socket: WebSocket): void {
-    this.connections.set(userId, socket);
+  add(userId: string, deviceId: string, socket: WebSocket): void {
+    let devices = this.connections.get(userId);
+    if (!devices) {
+      devices = new Map<string, WebSocket>();
+      this.connections.set(userId, devices);
+    }
+    devices.set(deviceId, socket);
   }
 
-  remove(userId: string): void {
-    this.connections.delete(userId);
+  remove(userId: string, deviceId: string): void {
+    const devices = this.connections.get(userId);
+    if (!devices) return;
+
+    devices.delete(deviceId);
+    if (devices.size === 0) {
+      this.connections.delete(userId);
+    }
   }
 
-  get(userId: string): WebSocket | undefined {
-    return this.connections.get(userId);
+  getUserSockets(userId: string): WebSocket[] {
+    const devices = this.connections.get(userId);
+    if (!devices) return [];
+    return [...devices.values()];
   }
 
-  isOnline(userId: string): boolean {
-    return this.connections.has(userId);
+  isDeviceOnline(userId: string, deviceId: string): boolean {
+    const devices = this.connections.get(userId);
+    return devices?.has(deviceId) ?? false;
   }
+
+    revoke(userId: string, deviceId: string): boolean {
+    const devices = this.connections.get(userId);
+    if (!devices) return false;
+
+    const socket = devices.get(deviceId);
+    if (!socket) return false;
+
+    // Close the socket (policy violation / logout)
+    socket.close(1008, "Device revoked");
+
+    devices.delete(deviceId);
+    if (devices.size === 0) this.connections.delete(userId);
+
+    return true;
+  }
+
 }
 
 export const wsManager = new WsManager();

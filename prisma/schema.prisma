@@ -24,6 +24,8 @@ model Device {
   deviceName String
   createdAt  DateTime  @default(now())
   lastSeenAt DateTime?
+  revokedAt DateTime?
+
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   publicKeys PublicKey[]

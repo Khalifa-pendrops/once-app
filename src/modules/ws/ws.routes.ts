@@ -1,56 +1,46 @@
-import type { FastifyInstance, FastifyPluginAsync } from "fastify";
-import { wsManager } from "./ws.manager";
+  import type { FastifyInstance, FastifyPluginAsync } from "fastify";
+  import { wsManager } from "./ws.manager";
+  import { DeviceService } from "../devices/device.service";
 
-export const wsRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
-  console.log("WS ROUTES REGISTERED ✅");
 
-  app.get(
-    "/ws",
-    { websocket: true },
-    async (connection, request) => {
-      console.log("WS HANDLER HIT ✅");
+  export const wsRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
 
-      try {
-        const token = (request.query as { token?: string }).token;
-        console.log("Token received?", !!token);
+    app.get(
+      "/ws",
+      { websocket: true },
+      async (connection, request) => {
 
-        if (!token) {
-          connection.close(1008, "Missing token");
-          return;
+
+
+        try {
+
+          const q = request.query as { token?: string; deviceId?: string };
+          const token = q.token;
+          const deviceId = q.deviceId;
+
+          // DB-backed device check
+          const deviceService = new DeviceService();
+
+          if (!token) { connection.close(1008, "Missing token"); return; }
+          if (!deviceId) { connection.close(1008, "Missing deviceId"); return; }
+
+          const payload = app.jwt.verify<{ sub: string }>(token);
+          const userId = payload.sub;
+
+          // Only then allow socket
+          await deviceService.validateDevice(userId, deviceId);
+
+
+          wsManager.add(userId, deviceId, connection);
+
+          connection.send(JSON.stringify({ type: "welcome", userId, deviceId }));
+
+          connection.on("close", () => wsManager.remove(userId, deviceId));
+
+        } catch (err) {
+          console.error("WS ERROR:", err);
+          connection.close(1008, "Invalid token");
         }
-
-        const payload = app.jwt.verify<{ sub: string }>(token);
-
-        const userId = payload.sub;
-        console.log("UserId:", userId);
-
-        // ✅ Register socket directly
-        wsManager.add(userId, connection);
-
-        // ✅ Send welcome directly
-        connection.send(
-          JSON.stringify({
-            type: "welcome",
-            userId,
-          })
-        );
-
-        console.log("Welcome sent");
-
-        connection.on("close", () => {
-          console.log("Socket closed:", userId);
-          wsManager.remove(userId);
-        });
-
-        connection.on("message", (raw: any) => {
-          if (raw.toString() === "ping") {
-            connection.send("pong");
-          }
-        });
-      } catch (err) {
-        console.error("WS ERROR:", err);
-        connection.close(1008, "Invalid token");
       }
-    }
-  );
-};
+    );
+  };

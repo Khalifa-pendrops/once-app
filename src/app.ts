@@ -7,6 +7,7 @@ import { redisHealthCheck } from "./redis/health";
 import { messageRoutes } from "./modules/messages/message.routes";
 import fastifyWebsocket from "@fastify/websocket";
 import { wsRoutes } from "./modules/ws/ws.routes";
+import { deviceRoutes } from "./modules/devices/device.routes";
 
 
 
@@ -53,6 +54,8 @@ export function buildApp(): FastifyInstance {
   app.register(messageRoutes);
   app.register(fastifyWebsocket);
   app.register(wsRoutes);
+  app.register(deviceRoutes);
+
 
 
   // All auth endpoints live under /auth/*

@@ -1,14 +1,17 @@
 import WebSocket from "ws";
 
-// paste your token here
 const token = process.env.TOKEN;
-if (!token) throw new Error("Set TOKEN env var");
+const deviceId = process.env.DEVICE_ID;
 
-const ws = new WebSocket(`ws://localhost:8080/ws?token=${encodeURIComponent(token)}`);
+if (!token) throw new Error("Set TOKEN env var");
+if (!deviceId) throw new Error("Set DEVICE_ID env var");
+
+const ws = new WebSocket(
+  `ws://localhost:8080/ws?token=${encodeURIComponent(token)}&deviceId=${encodeURIComponent(deviceId)}`
+);
 
 ws.on("open", () => {
   console.log("WS open");
-  ws.send("ping");
 });
 
 ws.on("message", (data) => {
