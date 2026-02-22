@@ -53,6 +53,15 @@ class WsManager {
     return true;
   }
 
+  getDeviceSocket(userId: string, deviceId: string): WebSocket | undefined {
+    return this.connections.get(userId)?.get(deviceId);
+  }
+
+  // Optional helper
+  countUserDevices(userId: string): number {
+    return this.connections.get(userId)?.size ?? 0;
+  }
+
 }
 
 export const wsManager = new WsManager();

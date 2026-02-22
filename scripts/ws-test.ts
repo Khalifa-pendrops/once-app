@@ -14,8 +14,29 @@ ws.on("open", () => {
   console.log("WS open");
 });
 
+
+// ws.on("message", (data) => {
+//   console.log("WS message:", data.toString());
+// });
+
 ws.on("message", (data) => {
-  console.log("WS message:", data.toString());
+  const text = data.toString();
+  console.log("WS message:", text);
+
+  try {
+    const parsed = JSON.parse(text);
+
+    if (parsed.type === "message") {
+      ws.send(
+        JSON.stringify({
+          type: "ack",
+          messageId: parsed.messageId,
+        })
+      );
+
+      console.log("ACK sent:", parsed.messageId);
+    }
+  } catch {}
 });
 
 ws.on("close", (code, reason) => {

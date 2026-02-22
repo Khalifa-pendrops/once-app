@@ -1,82 +1,63 @@
-  import type { CreateMessageInput, CreateMessageResult } from "./message.types";
-  import { MessageRepository } from "./message.repository";
-  import { wsManager } from "../ws/ws.manager";
+import type { CreateEncryptedMessageInput, CreateMessageResult } from "./message.types";
+import { MessageRepository } from "./message.repository";
+import { wsManager } from "../ws/ws.manager";
 
+export class MessageService {
+  private readonly repo = new MessageRepository();
 
-  export class MessageService {
-    private readonly repo = new MessageRepository();
-
-    // create message
-    async createMessage(input: CreateMessageInput): Promise<CreateMessageResult> {
+  async createEncryptedMessage(input: CreateEncryptedMessageInput): Promise<CreateMessageResult> {
     if (!input.recipientUserId?.trim()) throw new Error("recipientUserId is required");
-    if (!input.ciphertext?.trim()) throw new Error("ciphertext is required");
-
-    const recipientId = input.recipientUserId.trim();
-
-    // Store message first (TTL backup)
-    const created = await this.repo.create({
-      recipientUserId: recipientId,
-      ciphertext: input.ciphertext.trim(),
-    });
-
-    // If recipient is online, push instantly + delete
-    // const socket = wsManager.get(recipientId);
-
-    // if (socket) {
-    //   socket.send(
-    //     JSON.stringify({
-    //       type: "message",
-    //       messageId: created.messageId,
-    //       ciphertext: input.ciphertext,
-    //     })
-    //   );
-
-    //   // Delete immediately (ONCE)
-    //   await this.repo.ack(recipientId, created.messageId);
-      // }
-      
-      // ✅ Push to all connected devices
-      const sockets = wsManager.getUserSockets(recipientId);
-      
-      console.log("Recipient sockets:", recipientId, sockets.length);
-
-  if (sockets.length > 0) {
-    for (const socket of sockets) {
-      socket.send(
-        JSON.stringify({
-          type: "message",
-          messageId: created.messageId,
-          ciphertext: input.ciphertext,
-        })
-      );
+    if (!Array.isArray(input.payloads) || input.payloads.length === 0) {
+      throw new Error("payloads is required");
     }
 
-    // Delete immediately after delivery
-    await this.repo.ack(recipientId, created.messageId);
-  }
+    const created = await this.repo.createEncrypted(input);
 
+    // Push best-effort (server still stores as TTL backup)
+    const sockets = wsManager.getUserSockets(input.recipientUserId.trim());
+    for (const p of input.payloads) {
+      for (const socket of sockets) {
+        socket.send(
+          JSON.stringify({
+            type: "message",
+            messageId: created.messageId,
+            deviceId: p.deviceId,
+            nonce: p.nonce,
+            ciphertext: p.ciphertext,
+            senderPublicKey: p.senderPublicKey,
+          })
+        );
+      }
+    }
+
+    // NOTE: we are NOT auto-acking here because we pushed to user sockets (not device-targeted).
+    // Once you switch wsManager to (userId, deviceId) sockets, then you can ack per device after delivery.
 
     return created;
   }
 
-
-    // list pending messages
-      async listPending(recipientUserId: string): Promise<Array<{ messageId: string; ciphertext: string; createdAt: number }>> {
-      if (!recipientUserId?.trim()) throw new Error("recipientUserId is required");
-      return this.repo.listPending(recipientUserId.trim());
-    }
-
-    // acknowledge message
-      async ackMessage(recipientUserId: string, messageId: string): Promise<void> {
-      if (!recipientUserId?.trim()) throw new Error("recipientUserId is required");
-      if (!messageId?.trim()) throw new Error("messageId is required");
-
-        await this.repo.ack(recipientUserId.trim(), messageId.trim());
-        
-    }
-    async pullPending(recipientUserId: string): Promise<Array<{ messageId: string; ciphertext: string; createdAt: number }>> {
-      if (!recipientUserId?.trim()) throw new Error("recipientUserId is required");
-      return this.repo.pullPending(recipientUserId.trim());
-    }
-
+  async listPendingForDevice(userId: string, deviceId: string) {
+    if (!userId?.trim()) throw new Error("recipientUserId is required");
+    if (!deviceId?.trim()) throw new Error("deviceId is required");
+    return this.repo.listPendingForDevice(userId.trim(), deviceId.trim());
   }
+
+  async pullPendingForDevice(userId: string, deviceId: string) {
+    if (!userId?.trim()) throw new Error("recipientUserId is required");
+    if (!deviceId?.trim()) throw new Error("deviceId is required");
+    return this.repo.pullPendingForDevice(userId.trim(), deviceId.trim());
+  }
+
+  async ackMessageForDevice(userId: string, deviceId: string, messageId: string) {
+    if (!userId?.trim()) throw new Error("recipientUserId is required");
+    if (!deviceId?.trim()) throw new Error("deviceId is required");
+    if (!messageId?.trim()) throw new Error("messageId is required");
+    await this.repo.ackForDevice(userId.trim(), deviceId.trim(), messageId.trim());
+
+      const deleted = await this.repo.ackForDevice(userId, deviceId, messageId);
+
+  if (!deleted) {
+    console.warn("ACK failed (not found):", { userId, deviceId, messageId });
+  }
+  }
+}
