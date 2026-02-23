@@ -24,11 +24,11 @@ model Device {
   deviceName String
   createdAt  DateTime  @default(now())
   lastSeenAt DateTime?
-  revokedAt DateTime?
-
+  revokedAt  DateTime?
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   publicKeys PublicKey[]
+  preKeys    PreKey[]
 
   @@index([userId])
   @@map("devices")
@@ -46,4 +46,20 @@ model PublicKey {
 
   @@index([deviceId])
   @@map("public_keys")
+}
+
+model PreKey {
+  id           String    @id @default(uuid())
+  deviceId     String
+  keyType      String // "x25519"
+  publicKey    String
+  createdAt    DateTime  @default(now())
+  usedAt       DateTime?
+  usedByUserId String? // optional auditing: which sender consumed it
+
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId])
+  @@index([deviceId, usedAt])
+  @@map("pre_keys")
 }
