@@ -25,6 +25,7 @@ export class MessageRepository {
         nonce: p.nonce,
         ciphertext: p.ciphertext,
         senderPublicKey: p.senderPublicKey,
+        preKeyId: p.preKeyId, // ✅ NEW
         createdAt,
       };
 
@@ -48,7 +49,7 @@ export class MessageRepository {
     const keys = deviceMembers.map((m) => `once:msg:${m}`);
     const values = await redis.mGet(keys);
 
-    const result: Array<{ messageId: string; nonce: string; ciphertext: string; senderPublicKey: string; createdAt: number }> = [];
+    const result: Array<{ messageId: string; nonce: string; ciphertext: string; senderPublicKey: string; preKeyId?: string; createdAt: number }> = [];
 
     for (let i = 0; i < deviceMembers.length; i++) {
       const raw = values[i];
@@ -63,6 +64,7 @@ export class MessageRepository {
           nonce: parsed.nonce,
           ciphertext: parsed.ciphertext,
           senderPublicKey: parsed.senderPublicKey,
+          preKeyId: parsed.preKeyId, // ✅ NEW
           createdAt: parsed.createdAt,
         });
       } catch {
@@ -83,7 +85,7 @@ export class MessageRepository {
     const keys = deviceMembers.map((m) => `once:msg:${m}`);
     const values = await redis.mGet(keys);
 
-    const messages: Array<{ messageId: string; nonce: string; ciphertext: string; senderPublicKey: string; createdAt: number }> = [];
+    const messages: Array<{ messageId: string; nonce: string; ciphertext: string; senderPublicKey: string; preKeyId?: string; createdAt: number }> = [];
 
     for (let i = 0; i < deviceMembers.length; i++) {
       const raw = values[i];
@@ -98,6 +100,7 @@ export class MessageRepository {
           nonce: parsed.nonce,
           ciphertext: parsed.ciphertext,
           senderPublicKey: parsed.senderPublicKey,
+          preKeyId: parsed.preKeyId, // ✅ NEW
           createdAt: parsed.createdAt,
         });
       } catch {
@@ -113,21 +116,27 @@ export class MessageRepository {
     return messages;
   }
 
-async ackForDevice(userId: string, deviceId: string, messageId: string) {
-    const key = `msg:${userId}:${deviceId}:${messageId}`;
+  async ackForDevice(userId: string, deviceId: string, messageId: string) {
+    const inboxKey = `once:inbox:${userId}`;
+    const member = `${messageId}:${deviceId}`;
+    const msgKey = `once:msg:${member}`;
 
-    const exists = await redis.exists(key);
+    const exists = await redis.exists(msgKey);
 
     if (!exists) {
       console.warn("ACK attempted on non-existent message:", {
         userId,
         deviceId,
         messageId,
+        msgKey
       });
       return false;
     }
 
-    await redis.del(key);
+    const multi = redis.multi();
+    multi.del(msgKey);
+    multi.sRem(inboxKey, member);
+    await multi.exec();
 
     return true;
   }

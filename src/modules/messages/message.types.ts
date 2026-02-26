@@ -3,6 +3,7 @@ export type EncryptedPayload = Readonly<{
   nonce: string;
   ciphertext: string;
   senderPublicKey: string;
+  preKeyId?: string; // ✅ new
 }>;
 
 export type CreateEncryptedMessageInput = Readonly<{
@@ -23,5 +24,14 @@ export type StoredEncryptedMessage = Readonly<{
   nonce: string;
   ciphertext: string;
   senderPublicKey: string;
+  preKeyId?: string; // ✅ NEW
   createdAt: number;
 }>;
+
+export type DevicePayload = {
+  deviceId: string;
+  nonce: string;
+  ciphertext: string;
+  senderPublicKey: string;
+  preKeyId?: string; // ✅ NEW (optional)
+};

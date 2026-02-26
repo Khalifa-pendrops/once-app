@@ -9,7 +9,7 @@ import fastifyWebsocket from "@fastify/websocket";
 import { wsRoutes } from "./modules/ws/ws.routes";
 import { deviceRoutes } from "./modules/devices/device.routes";
 import { keyRoutes } from "./modules/keys/key.routes";
-
+import { preKeyRoutes } from "./modules/prekeys/prekeys.routes";
 
 
 
@@ -56,8 +56,8 @@ export function buildApp(): FastifyInstance {
   app.register(fastifyWebsocket);
   app.register(wsRoutes);
   app.register(deviceRoutes);
-app.register(keyRoutes);
-
+  app.register(keyRoutes);
+  app.register(preKeyRoutes);
 
 
   // All auth endpoints live under /auth/*

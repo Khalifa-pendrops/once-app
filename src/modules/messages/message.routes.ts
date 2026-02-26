@@ -8,6 +8,7 @@ type EncryptedPayload = {
   nonce: string; // base64
   ciphertext: string; // base64
   senderPublicKey: string; // base64
+  preKeyId?: string; // ✅ new
 };
 
 type CreateMessageBody = {
@@ -77,6 +78,7 @@ export const messageRoutes: FastifyPluginAsync = async (app: FastifyInstance) =>
           nonce: p.nonce.trim(),
           ciphertext: p.ciphertext.trim(),
           senderPublicKey: p.senderPublicKey.trim(),
+          preKeyId: p.preKeyId?.trim(), // ✅ NEW
         })),
       });
 

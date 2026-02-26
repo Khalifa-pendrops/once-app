@@ -25,6 +25,7 @@ export class MessageService {
             nonce: p.nonce,
             ciphertext: p.ciphertext,
             senderPublicKey: p.senderPublicKey,
+             preKeyId: p.preKeyId ?? null, // ✅ NEW
           })
         );
       }
@@ -52,12 +53,11 @@ export class MessageService {
     if (!userId?.trim()) throw new Error("recipientUserId is required");
     if (!deviceId?.trim()) throw new Error("deviceId is required");
     if (!messageId?.trim()) throw new Error("messageId is required");
-    await this.repo.ackForDevice(userId.trim(), deviceId.trim(), messageId.trim());
+    
+    const deleted = await this.repo.ackForDevice(userId.trim(), deviceId.trim(), messageId.trim());
 
-      const deleted = await this.repo.ackForDevice(userId, deviceId, messageId);
-
-  if (!deleted) {
-    console.warn("ACK failed (not found):", { userId, deviceId, messageId });
-  }
+    if (!deleted) {
+      console.warn("ACK failed (not found):", { userId, deviceId, messageId });
+    }
   }
 }
