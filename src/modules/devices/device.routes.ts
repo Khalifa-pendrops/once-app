@@ -9,7 +9,41 @@
         }>;
 
         export const deviceRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
-        app.post<{ Body: RevokeBody }>(
+        app.post<{ Body: { deviceId: string; deviceName: string } }>(
+    "/devices",
+    { preHandler: requireAuth },
+    async (request, reply) => {
+      const userId = request.user.sub;
+      const { deviceId, deviceName } = request.body;
+
+      if (!deviceId?.trim() || !deviceName?.trim()) {
+        return reply.code(400).send({
+          error: "INVALID_INPUT",
+          message: "deviceId and deviceName are required",
+        });
+      }
+
+      const existing = await prisma.device.findUnique({ where: { id: deviceId.trim() } });
+      if (existing) {
+        if (existing.userId !== userId) {
+          return reply.code(403).send({ error: "FORBIDDEN", message: "Device ID already taken by another user" });
+        }
+        return reply.code(200).send({ status: "already_registered", device: existing });
+      }
+
+      const device = await prisma.device.create({
+        data: {
+          id: deviceId.trim(),
+          userId,
+          deviceName: deviceName.trim(),
+        },
+      });
+
+      return reply.code(201).send({ status: "registered", device });
+    }
+  );
+
+  app.post<{ Body: RevokeBody }>(
             "/devices/revoke",
             { preHandler: requireAuth },
             async (request, reply) => {

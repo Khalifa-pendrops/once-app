@@ -16,7 +16,7 @@ export const wsRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
     "/ws",
     { websocket: true },
     async (connection: WsConnection | any, request) => {
-      // ✅ normalize socket (works across versions)
+      // normalize socket (works across versions)
       const socket: import("ws").WebSocket = connection?.socket ?? connection;
 
       try {
@@ -36,10 +36,10 @@ export const wsRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         const payload = app.jwt.verify<{ sub: string }>(token);
         const userId = payload.sub;
 
-        // ✅ DB-backed device check (must belong to user & not revoked)
+        // DB-backed device check (must belong to user & not revoked)
         await deviceService.validateDevice(userId, deviceId);
 
-        // ✅ Register socket for (userId, deviceId)
+        // Register socket for (userId, deviceId)
         wsManager.add(userId, deviceId, socket);
 
         console.log("WS connected:", {
@@ -48,39 +48,55 @@ export const wsRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
           connectedDevices: wsManager.countUserDevices(userId),
         });
 
-        socket.send(JSON.stringify({ type: "welcome", userId, deviceId }));
-
-        // ✅ Handle messages (we’ll use this for ACK in the next step)
+        // Handle incoming messages (e.g. ACK)
+        // Register listener as early as possible to avoid race conditions
         socket.on("message", async (raw: import("ws").RawData) => {
           const text = raw.toString();
 
-          // ping/pong
           if (text === "ping") {
             socket.send("pong");
             return;
           }
 
-          // ACK support (Step 4.8)
           try {
             const data = JSON.parse(text) as { type?: string; messageId?: string };
 
             if (data.type === "ack" && typeof data.messageId === "string") {
-              // IMPORTANT: use the "device-aware" ack (per device)
               await messageService.ackMessageForDevice(userId, deviceId, data.messageId);
-
+              socket.send(JSON.stringify({ type: "ack_ok", messageId: data.messageId }));
               console.log("ACK received:", { userId, deviceId, messageId: data.messageId });
             }
-          } catch {
-            // ignore invalid JSON
+          } catch (err: any) {
+             if (err?.code === "P1001" || err?.code === "P1008") {
+               console.error("DB down during ACK:", err.code);
+             }
           }
         });
+
+        socket.send(JSON.stringify({ type: "welcome", userId, deviceId }));
+
+        // Offline Sync: Fetch and push pending messages on connect
+        const pending = await messageService.listPendingForDevice(userId, deviceId);
+        if (pending.length > 0) {
+          console.log(`Syncing ${pending.length} pending messages for device: ${deviceId}`);
+          for (const msg of pending) {
+            socket.send(JSON.stringify({ type: "pending", ...msg }));
+            await messageService.markDelivered(userId, deviceId, msg.messageId);
+          }
+        }
 
         socket.on("close", () => {
           wsManager.remove(userId, deviceId);
           console.log("WS closed:", { userId, deviceId });
         });
-      } catch (err) {
+      } catch (err: any) {
         console.error("WS ERROR:", err);
+
+        // Handle DB Outage specifically
+        if (err?.code === "P1001" || err?.code === "P1008") {
+          socket.close(1011, "DB_DOWN"); // 1011: internal error / service restart
+          return;
+        }
 
         if (err instanceof Error) {
           socket.close(1008, err.message);

@@ -19,6 +19,13 @@ dotenv.config();
 export function buildApp(): FastifyInstance {
   const app = Fastify({
     logger: true, // Enable logging
+    bodyLimit: 1048576, // 1MB limit for entire request payload
+  });
+
+  // Global Rate Limiting
+  app.register(import("@fastify/rate-limit"), {
+    max: 100,
+    timeWindow: "1 minute",
   });
 
    //  Register JWT plugin FIRST

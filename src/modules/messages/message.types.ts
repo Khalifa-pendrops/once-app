@@ -3,35 +3,43 @@ export type EncryptedPayload = Readonly<{
   nonce: string;
   ciphertext: string;
   senderPublicKey: string;
-  preKeyId?: string; // ✅ new
+  preKeyId?: string; 
 }>;
 
 export type CreateEncryptedMessageInput = Readonly<{
   senderUserId: string;
   senderDeviceId: string;
   recipientUserId: string;
+  clientMessageId?: string; 
   payloads: EncryptedPayload[];
 }>;
 
 export type CreateMessageResult = Readonly<{
   messageId: string;
   expiresInSeconds: number;
+  createdAt: number;
+  expiresAt: number;
 }>;
 
-export type StoredEncryptedMessage = Readonly<{
+export type StoredEncryptedMessage = {
+  senderUserId: string; 
+  senderDeviceId: string; 
   recipientUserId: string;
   recipientDeviceId: string;
   nonce: string;
   ciphertext: string;
   senderPublicKey: string;
-  preKeyId?: string; // ✅ NEW
+  preKeyId?: string;
   createdAt: number;
-}>;
+  expiresAt: number; 
+  deliveredAt?: number; 
+  ackedAt?: number; 
+};
 
 export type DevicePayload = {
   deviceId: string;
   nonce: string;
   ciphertext: string;
   senderPublicKey: string;
-  preKeyId?: string; // ✅ NEW (optional)
+  preKeyId?: string; 
 };
