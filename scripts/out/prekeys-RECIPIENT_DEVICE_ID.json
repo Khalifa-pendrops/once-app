@@ -1,0 +1,18 @@
+{
+  "deviceId": "RECIPIENT_DEVICE_ID",
+  "createdAt": "2026-03-01T08:21:34.503Z",
+  "pairs": [
+    {
+      "publicKeyB64": "mFbW224oZ4T_8ArSKVVUwSceHlMEUC9Ts2hRRayWYXg",
+      "privateKeyB64": "17qqSzxYSXlaDL_4GgnLxPDFfX8HohK6BznNicDxI6U"
+    },
+    {
+      "publicKeyB64": "PVhbX5lTwSeue89fRS0enGXSsJe2OQMCK2MW6CCwqkg",
+      "privateKeyB64": "bQhCPDW2FdsE8i0SCC7AcO4ROMZKn1Nfi79Idsgilao"
+    },
+    {
+      "publicKeyB64": "73gsIJVrkddEeBvzInlAbcjl2PO_kvS9KWH0oDPEIVA",
+      "privateKeyB64": "LnqhYW_raPBs38JcV-iFdznIZSBH41c9IcPRwUpHYRI"
+    }
+  ]
+}
