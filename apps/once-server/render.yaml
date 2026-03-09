@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: once-server
+    runtime: node
+    plan: free
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # Provide your Supabase connection string in Render Dashboard
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: once-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: "15m"
+      - key: MESSAGE_TTL_SECONDS
+        value: "600"
+      - key: NODE_EXTRA_CA_CERTS
+        value: "/opt/render/project/src/prod-ca-2021.crt"
+      - key: PRIVATE_KEY
+        sync: false
+
+  - type: keyvalue
+    name: once-redis
+    plan: free
+
+# Removed managed databases to use existing Supabase instance
