@@ -7,7 +7,7 @@ import {
   Dimensions, 
   KeyboardAvoidingView, 
   Platform,
-  ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { MotiView, AnimatePresence } from 'moti';
@@ -98,7 +98,7 @@ export default function VaultAuth() {
           transition={{ type: 'timing', duration: 800 }}
           className="w-full"
         >
-          <StyledText className="text-primary text-4xl font-bold mb-2 tracking-tighter">
+          <StyledText className="text-primary text-4xl font-bold mb-2 tracking-tighter ">
             {isLogin ? 'Unlock Vault' : 'Forge Access'}
           </StyledText>
           <StyledText className="text-muted mb-12">
