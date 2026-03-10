@@ -10,6 +10,8 @@ import '../global.css';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { StorageService, KEYS } from '../src/services/storage/secureStorage';
+import { useAuthStore } from '../src/store/authStore';
+import { wsClient } from '../src/services/ws/wsClient';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -27,69 +29,69 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
-  const [isAuthLoaded, setIsAuthLoaded] = useState(false);
-  const [hasKeys, setHasKeys] = useState(false);
+  const { isAuthenticated, hasIdentityKeys, initialize } = useAuthStore();
+  const [isAuthRestored, setIsAuthRestored] = useState(false);
 
   const segments = useSegments();
   const router = useRouter();
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
+  // 1. WebSocket Lifecycle
   useEffect(() => {
-    if (error) throw error;
-  }, [error]);
-
-  useEffect(() => {
-    async function checkKeys() {
-      console.log("[Layout] Checking identity keys...");
-      try {
-        const key = await StorageService.getItem(KEYS.IDENTITY_PRIVATE_KEY);
-        setHasKeys(!!key);
-      } catch (e) {
-        console.error("[Layout] Key check failed:", e);
-      } finally {
-        setIsAuthLoaded(true);
-      }
+    if (isAuthenticated) {
+      console.log("[Layout] Authenticated. Activating relay...");
+      wsClient.connect();
+    } else {
+      wsClient.disconnect();
     }
-    checkKeys();
-    
-    // Safety timeout: if keys check takes > 3s, just proceed to show UI
-    const timer = setTimeout(() => {
-       if (!isAuthLoaded) {
-         console.log("[Layout] Auth check took too long, proceeding anyway");
-         setIsAuthLoaded(true);
-       }
-    }, 3000);
-    return () => clearTimeout(timer);
+  }, [isAuthenticated]);
+
+  // 2. Restore Auth & Identity Session
+  useEffect(() => {
+    async function restore() {
+      console.log("[Layout] Restoring Secure Store states...");
+      await initialize();
+      setIsAuthRestored(true);
+    }
+    restore();
   }, []);
 
+  // 2. Hide Splash
   useEffect(() => {
-    if (loaded && isAuthLoaded) {
-      console.log("[Layout] Assets ready, hiding splash");
+    if (loaded && isAuthRestored) {
+      console.log("[Layout] Assets & State ready, hiding splash");
       SplashScreen.hideAsync();
     }
-  }, [loaded, isAuthLoaded]);
+  }, [loaded, isAuthRestored]);
 
+  // 3. Redirection Logic
   useEffect(() => {
-    if (!isAuthLoaded) return;
+    if (!isAuthRestored) return;
 
     const currentSegment = segments[0] as string;
-    const inAuthGroup = currentSegment === 'ritual';
+    const inRitual = currentSegment === 'ritual';
+    const inVault = currentSegment === 'vault';
+    const inTabs = currentSegment === '(tabs)';
 
-    console.log("[Layout] Auth State:", { hasKeys, currentSegment, inAuthGroup });
+    console.log("[Layout] Flow State:", { hasIdentityKeys, isAuthenticated, currentSegment });
 
-    if (!hasKeys && !inAuthGroup) {
-      console.log("[Layout] Redirecting to /ritual");
-      router.replace('/ritual');
-    } else if (hasKeys && inAuthGroup) {
-      console.log("[Layout] Redirecting to /(tabs)");
-      router.replace('/(tabs)');
+    if (!hasIdentityKeys) {
+      // Step 1: No identity? Must perform the Ritual.
+      if (!inRitual) router.replace('/ritual' as any);
+    } else if (!isAuthenticated) {
+      // Step 2: Have identity but not logged in? Must enter the Vault.
+      if (!inVault) router.replace('/vault' as any);
+    } else {
+      // Step 3: Authenticated? Go to Main Tabs.
+      if (inRitual || inVault || !inTabs) {
+        router.replace('/(tabs)' as any);
+      }
     }
-  }, [hasKeys, isAuthLoaded, segments]);
+  }, [hasIdentityKeys, isAuthenticated, isAuthRestored, segments]);
 
-  if (!loaded || !isAuthLoaded) {
+  if (!loaded || !isAuthRestored) {
     return (
       <StyledView style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: '#fff', fontSize: 12 }}>Loading Once...</Text>
+        <StyledText style={{ color: '#fff', fontSize: 10, opacity: 0.5 }}>Loading Secure Environment...</StyledText>
       </StyledView>
     );
   }
@@ -104,6 +106,7 @@ function RootLayoutNav() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="ritual" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="vault" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>

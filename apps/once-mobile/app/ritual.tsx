@@ -5,6 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { MotiView, MotiText } from 'moti';
 import { CryptoService } from '../src/services/crypto/cryptoService';
 import { StorageService } from '../src/services/storage/secureStorage';
+import { useAuthStore } from '../src/store/authStore';
 import { COLORS } from '../src/constants/theme';
 
 // Explicitly type the components to bypass React 19 JSX conflicts if they persist
@@ -43,18 +44,24 @@ export default function RitualScreen() {
     }
 
     try {
+      console.log("[Ritual] Generating keys...");
       const keys = CryptoService.generateKeyPair();
+      console.log("[Ritual] Saving keys to SecureStore...");
       await StorageService.saveIdentityKeys(keys.privateKey, keys.publicKey);
       
+      // Update global store so _layout.tsx reacts immediately
+      useAuthStore.getState().setHasIdentityKeys(true);
+      
       setStatus('Identity Sealed.');
+      console.log("[Ritual] Success. Transitioning to Vault...");
       // @ts-ignore
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       
       setTimeout(() => {
-        router.replace('/(tabs)');
+        router.replace('/vault' as any);
       }, 1000);
     } catch (err) {
-      console.error(err);
+      console.error("[Ritual] Error:", err);
       setStatus('Ritual Failed. Retry.');
       setIsGenerating(false);
     }
@@ -72,7 +79,7 @@ export default function RitualScreen() {
           The Ritual
         </StyledText>
         <StyledText className="text-muted text-center mb-12">
-          Hold the crest to generate your unique identity keys. This never leaves your device.
+          Hold the crest to generate your unique identity keys. Don't worry, this never leaves your device.
         </StyledText>
 
         <StyledTouchableOpacity 

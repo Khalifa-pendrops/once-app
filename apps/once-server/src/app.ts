@@ -10,6 +10,7 @@ import { wsRoutes } from "./modules/ws/ws.routes";
 import { deviceRoutes } from "./modules/devices/device.routes";
 import { keyRoutes } from "./modules/keys/key.routes";
 import { preKeyRoutes } from "./modules/prekeys/prekeys.routes";
+import { userRoutes } from "./modules/users/user.routes";
 
 
 
@@ -69,6 +70,7 @@ export function buildApp(): FastifyInstance {
   app.register(deviceRoutes);
   app.register(keyRoutes);
   app.register(preKeyRoutes);
+  app.register(userRoutes, { prefix: "/users" });
 
 
   // All auth endpoints live under /auth/*
