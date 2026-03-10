@@ -21,7 +21,7 @@ export class CryptoService {
     const pair = nacl.box.keyPair();
     return {
       publicKey: Buffer.from(pair.publicKey).toString("base64"),
-      privateKey: Buffer.from(pair.privateKey).toString("base64"),
+      privateKey: Buffer.from(pair.secretKey).toString("base64"),
     };
   }
 

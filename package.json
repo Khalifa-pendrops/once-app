@@ -11,5 +11,9 @@
     "mobile:start": "npm run start -w apps/once-mobile",
     "mobile:android": "npm run android -w apps/once-mobile",
     "mobile:ios": "npm run ios -w apps/once-mobile"
+  },
+  "devDependencies": {
+    "expo": "~54.0.33",
+    "expo-router": "~6.0.23"
   }
 }
