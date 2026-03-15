@@ -81,8 +81,8 @@ export default function RootLayout() {
       // Step 2: Have identity but not logged in? Must enter the Vault.
       if (!inVault) router.replace('/vault' as any);
     } else {
-      // Step 3: Authenticated? Go to Main Tabs.
-      if (inRitual || inVault || !inTabs) {
+      // Step 3: Authenticated? Go to Main Tabs if we are on auth screens
+      if (inRitual || inVault) {
         router.replace('/(tabs)' as any);
       }
     }

@@ -51,6 +51,7 @@ export default function RitualScreen() {
       
       // Update global store so _layout.tsx reacts immediately
       useAuthStore.getState().setHasIdentityKeys(true);
+      useAuthStore.getState().setPublicKey(keys.publicKey);
       
       setStatus('Identity Sealed.');
       console.log("[Ritual] Success. Transitioning to Vault...");

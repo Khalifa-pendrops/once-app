@@ -10,9 +10,7 @@ const KEYS = {
 
 export class StorageService {
   static async setItem(key: string, value: string): Promise<void> {
-    await SecureStore.setItemAsync(key, value, {
-      keychainAccessible: SecureStore.WHEN_PASSCODE_SET_THIS_DEVICE_ONLY,
-    });
+    await SecureStore.setItemAsync(key, value);
   }
 
   static async getItem(key: string): Promise<string | null> {

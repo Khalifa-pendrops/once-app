@@ -64,12 +64,74 @@ class WebSocketClient {
     };
   }
 
-  private handleIncomingMessage(data: any) {
-    // 1. Send ACK
+  private async handleIncomingMessage(data: any) {
+    // 1. Send ACK immediately so server marks it delivered
     this.send({ type: 'ack', messageId: data.messageId });
     
-    // 2. Dispatch to stores/listeners (to be implemented)
-    console.log('[WS] Message ready for decryption:', data.messageId);
+    try {
+      // 2. Extract payload based on push type
+      let nonce, ciphertext, senderPublicKey;
+      
+      if (data.type === 'message') {
+        ({ nonce, ciphertext, senderPublicKey } = data);
+      } else if (data.type === 'pending') {
+        const payloadStr = typeof data.payload === 'string' ? data.payload : JSON.stringify(data.payload);
+        if (!payloadStr) return;
+        const payload = JSON.parse(payloadStr);
+        ({ nonce, ciphertext, senderPublicKey } = payload);
+      } else {
+        return;
+      }
+
+      const { decryptedKey } = useAuthStore.getState();
+
+      if (!decryptedKey) {
+        console.warn('[WS] Cannot decrypt message: Vault is locked.');
+        return;
+      }
+
+      // 3. Decrypt the message
+      const { E2EService } = await import('../crypto/e2e');
+      const plaintext = E2EService.decryptMessage(
+        ciphertext,
+        nonce,
+        senderPublicKey,
+        decryptedKey
+      );
+
+      console.log('[WS] Decrypted message from:', data.senderUserId);
+
+      // 4. Save to Message Store
+      const { useMessageStore } = await import('../../store/messageStore');
+      const { addMessage } = useMessageStore.getState();
+
+      const messageRecord = {
+        id: data.clientMessageId || data.messageId,
+        senderId: data.senderUserId,
+        recipientId: useAuthStore.getState().userId || '',
+        text: plaintext,
+        timestamp: data.createdAt || new Date().toISOString(),
+        isRead: false,
+        status: 'delivered' as const,
+      };
+
+      await addMessage(data.senderUserId, messageRecord);
+
+      // (Optional) Add contact if missing
+      const { useContactStore } = await import('../../store/contactStore');
+      const { addContact } = useContactStore.getState();
+      
+      await addContact({
+        id: data.senderUserId,
+        email: `Unknown Node (${data.senderUserId.substring(0, 5)})`, // MVP fallback
+        publicKey: senderPublicKey,
+        deviceId: 'unknown',
+        status: 'pending' // we haven't officially added them
+      });
+
+    } catch (err) {
+      console.error('[WS] Failed to process incoming message:', err);
+    }
   }
 
   send(data: object) {

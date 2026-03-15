@@ -22,7 +22,7 @@ export default function ChatListScreen() {
     <StyledTouchableOpacity 
       activeOpacity={0.7}
       className="flex-row items-center px-6 py-5 border-b border-border/10"
-      onPress={() => console.log('Open chat with', item.id)}
+      onPress={() => router.push(`/chat/${item.id}` as any)}
     >
       <StyledView className="w-12 h-12 rounded-full bg-surface border border-border/20 items-center justify-center">
         <Ionicons name="person-outline" size={24} color={COLORS.primary} />

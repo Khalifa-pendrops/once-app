@@ -8,10 +8,12 @@ interface AuthState {
   isAuthenticated: boolean;
   hasIdentityKeys: boolean;
   decryptedKey: string | null;
+  publicKey: string | null;
   isUnlocked: boolean;
   setAuth: (token: string, userId: string, deviceId?: string | null) => Promise<void>;
   setHasIdentityKeys: (has: boolean) => void;
   setDecryptedKey: (key: string | null) => void;
+  setPublicKey: (key: string | null) => void;
   setUnlocked: (unlocked: boolean) => void;
   setDeviceId: (id: string | null) => Promise<void>;
   logout: () => Promise<void>;
@@ -25,6 +27,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   hasIdentityKeys: false,
   decryptedKey: null,
+  publicKey: null,
   isUnlocked: false,
 
   setAuth: async (token: string, userId: string, deviceId?: string | null) => {
@@ -39,6 +42,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   setHasIdentityKeys: (has: boolean) => set({ hasIdentityKeys: has }),
 
   setDecryptedKey: (key: string | null) => set({ decryptedKey: key }),
+
+  setPublicKey: (key: string | null) => set({ publicKey: key }),
 
   setUnlocked: (unlocked: boolean) => set({ isUnlocked: unlocked }),
 
@@ -62,11 +67,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     const userId = await StorageService.getItem(KEYS.USER_ID);
     const deviceId = await StorageService.getItem(KEYS.DEVICE_ID);
     const idKey = await StorageService.getItem(KEYS.IDENTITY_PRIVATE_KEY);
+    const pubKey = await StorageService.getItem(KEYS.IDENTITY_PUBLIC_KEY);
     
     set({ 
       token, 
       userId, 
       deviceId,
+      publicKey: pubKey,
       isAuthenticated: !!(token && userId),
       hasIdentityKeys: !!idKey 
     });
