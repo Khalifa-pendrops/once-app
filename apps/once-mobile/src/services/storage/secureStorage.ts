@@ -10,7 +10,16 @@ const KEYS = {
 
 export class StorageService {
   static async setItem(key: string, value: string): Promise<void> {
-    await SecureStore.setItemAsync(key, value);
+    try {
+      await Promise.race([
+        SecureStore.setItemAsync(key, value),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('SecureStore write timeout')), 3000))
+      ]);
+    } catch (e) {
+      console.warn(`[Storage] Failed or timed out saving ${key}:`, e);
+      // In a real app we'd show an error modal. For this MVP, we log and proceed
+      // so the user isn't permanently locked out of the app.
+    }
   }
 
   static async getItem(key: string): Promise<string | null> {

@@ -13,8 +13,41 @@ export type SendMessageRequest = {
   payloads: EncryptedPayload[];
 };
 
+import { StorageService, KEYS } from '../services/storage/secureStorage';
+
 export const messageApi = {
   sendMessage: async (data: SendMessageRequest): Promise<void> => {
-    await apiClient.post('/messages', data);
+    // Manually construct the native fetch request to bypass Axios 1.x RN bugs
+    const token = await StorageService.getItem(KEYS.AUTH_TOKEN);
+    const deviceId = await StorageService.getItem(KEYS.DEVICE_ID);
+    
+    if (!token || !deviceId) {
+      throw new Error("Missing authentication credentials");
+    }
+
+    const response = await fetch('https://once-app-qdwh.onrender.com/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'x-device-id': deviceId
+      },
+      body: JSON.stringify(data)
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        let errData;
+        try {
+            errData = JSON.parse(errorText);
+        } catch(e) {
+            errData = { message: errorText };
+        }
+        
+        throw { 
+            message: `HTTP error! status: ${response.status}`, 
+            response: { data: errData, status: response.status } 
+        };
+    }
   },
 };

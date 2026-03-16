@@ -92,6 +92,9 @@ await prisma.publicKey.create({
           revokedAt: null,
           keyType: "x25519",
         },
+        orderBy: {
+          createdAt: 'desc'
+        },
         select: {
           deviceId: true,
           keyType: true,

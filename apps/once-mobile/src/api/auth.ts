@@ -38,5 +38,14 @@ export const authApi = {
   me: async (): Promise<{ userId: string }> => {
     const response = await apiClient.get<{ userId: string }>('/auth/me');
     return response.data;
+  },
+
+  registerDevice: async (deviceName: string): Promise<{ deviceId: string; deviceName: string }> => {
+    const response = await apiClient.post<{ deviceId: string; deviceName: string }>('/devices/register', { deviceName });
+    return response.data;
+  },
+
+  registerKey: async (data: { deviceId: string; keyType: string; publicKey: string }): Promise<void> => {
+    await apiClient.post('/keys/register', data);
   }
 };

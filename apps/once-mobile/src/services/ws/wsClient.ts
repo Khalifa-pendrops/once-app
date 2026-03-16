@@ -65,11 +65,8 @@ class WebSocketClient {
   }
 
   private async handleIncomingMessage(data: any) {
-    // 1. Send ACK immediately so server marks it delivered
-    this.send({ type: 'ack', messageId: data.messageId });
-    
     try {
-      // 2. Extract payload based on push type
+      // 1. Extract payload based on push type
       let nonce, ciphertext, senderPublicKey;
       
       if (data.type === 'message') {
@@ -90,7 +87,7 @@ class WebSocketClient {
         return;
       }
 
-      // 3. Decrypt the message
+      // 2. Decrypt the message
       const { E2EService } = await import('../crypto/e2e');
       const plaintext = E2EService.decryptMessage(
         ciphertext,
@@ -101,7 +98,7 @@ class WebSocketClient {
 
       console.log('[WS] Decrypted message from:', data.senderUserId);
 
-      // 4. Save to Message Store
+      // 3. Save to Message Store
       const { useMessageStore } = await import('../../store/messageStore');
       const { addMessage } = useMessageStore.getState();
 
@@ -117,7 +114,10 @@ class WebSocketClient {
 
       await addMessage(data.senderUserId, messageRecord);
 
-      // (Optional) Add contact if missing
+      // 4. Ack only after the message is persisted locally.
+      this.send({ type: 'ack', messageId: data.messageId });
+
+      // 5. Add contact if missing
       const { useContactStore } = await import('../../store/contactStore');
       const { addContact } = useContactStore.getState();
       

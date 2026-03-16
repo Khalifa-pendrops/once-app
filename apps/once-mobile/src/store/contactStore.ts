@@ -22,9 +22,16 @@ export const useContactStore = create<ContactState>((set, get) => ({
 
   addContact: async (contact: Contact) => {
     const { contacts } = get();
-    if (contacts.find(c => c.id === contact.id)) return;
+    const existingIndex = contacts.findIndex(c => c.id === contact.id);
+    
+    let newContacts;
+    if (existingIndex >= 0) {
+      newContacts = [...contacts];
+      newContacts[existingIndex] = contact;
+    } else {
+      newContacts = [...contacts, contact];
+    }
 
-    const newContacts = [...contacts, contact];
     await StorageService.setItem('contacts_meta', JSON.stringify(newContacts));
     set({ contacts: newContacts });
   },

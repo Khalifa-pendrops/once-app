@@ -49,18 +49,15 @@ export default function RitualScreen() {
       console.log("[Ritual] Saving keys to SecureStore...");
       await StorageService.saveIdentityKeys(keys.privateKey, keys.publicKey);
       
-      // Update global store so _layout.tsx reacts immediately
-      useAuthStore.getState().setHasIdentityKeys(true);
-      useAuthStore.getState().setPublicKey(keys.publicKey);
-      
       setStatus('Identity Sealed.');
       console.log("[Ritual] Success. Transitioning to Vault...");
       // @ts-ignore
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       
-      setTimeout(() => {
-        router.replace('/vault' as any);
-      }, 1000);
+      // Update global store so _layout.tsx reacts AND handles the navigation to /vault
+      useAuthStore.getState().setHasIdentityKeys(true);
+      useAuthStore.getState().setPublicKey(keys.publicKey);
+      
     } catch (err) {
       console.error("[Ritual] Error:", err);
       setStatus('Ritual Failed. Retry.');

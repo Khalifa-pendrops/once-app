@@ -108,6 +108,7 @@ function RootLayoutNav() {
         <Stack.Screen name="ritual" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="vault" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>

@@ -9,16 +9,28 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000,
+  timeout: 30000,
 });
 
 // Auth interceptor to add JWT to requests
 apiClient.interceptors.request.use(
   async (config) => {
     const token = await StorageService.getItem(KEYS.AUTH_TOKEN);
+    const deviceId = await StorageService.getItem(KEYS.DEVICE_ID);
+
+    // Bypass Axios 1.x React Native header normalization bugs
+    const rawHeaders = config.headers as any;
+    
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      rawHeaders['Authorization'] = `Bearer ${token}`;
     }
+    if (deviceId) {
+      rawHeaders['x-device-id'] = deviceId;
+    }
+    
+    // Explicitly reassign
+    config.headers = rawHeaders;
+    
     return config;
   },
   (error) => {

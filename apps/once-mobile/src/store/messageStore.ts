@@ -14,6 +14,7 @@ export interface ChatMessage {
 interface MessageState {
   messages: Record<string, ChatMessage[]>; // Keyed by contactId (the other person)
   addMessage: (contactId: string, message: ChatMessage) => Promise<void>;
+  updateMessageStatus: (contactId: string, messageId: string, status: ChatMessage['status']) => Promise<void>;
   markAsRead: (contactId: string) => Promise<void>;
   initialize: () => Promise<void>;
 }
@@ -40,6 +41,21 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
     // Serialize and save to secure storage (for MVP, we store all messages together. 
     // In production, SQLite with encrypted columns is better for large histories).
+    await StorageService.setItem('chat_history', JSON.stringify(newMessages));
+    set({ messages: newMessages });
+  },
+
+  updateMessageStatus: async (contactId: string, messageId: string, status: ChatMessage['status']) => {
+    const { messages } = get();
+    if (!messages[contactId]) return;
+
+    const newMessages = {
+      ...messages,
+      [contactId]: messages[contactId].map(m => 
+        m.id === messageId ? { ...m, status } : m
+      ),
+    };
+
     await StorageService.setItem('chat_history', JSON.stringify(newMessages));
     set({ messages: newMessages });
   },

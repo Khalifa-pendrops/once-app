@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,7 +26,7 @@ export default function ChatScreen() {
   const { contacts } = useContactStore();
   const contact = contacts.find(c => c.id === id);
   
-  const { messages, addMessage, initialize: initMessages } = useMessageStore();
+  const { messages, addMessage, updateMessageStatus, initialize: initMessages } = useMessageStore();
   const contactMessages = messages[id || ''] || [];
   
   const { userId, decryptedKey, publicKey } = useAuthStore();
@@ -49,12 +49,13 @@ export default function ChatScreen() {
   const handleSend = async () => {
     if (!inputText.trim() || !contact || !userId || !decryptedKey) return;
 
+    let clientMessageId = '';
     try {
       const messageText = inputText.trim();
       setInputText('');
 
       // 1. Create Local Message Record
-      const clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      clientMessageId = `msg_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       const newMessage: ChatMessage = {
         id: clientMessageId,
         senderId: userId,
@@ -78,6 +79,7 @@ export default function ChatScreen() {
       // 4. Construct API payload exactly as expected by MessageRoutes
       if (!publicKey) {
           console.error("Missing public key");
+          await updateMessageStatus(contact.id, clientMessageId, 'failed');
           return;
       }
       
@@ -97,11 +99,20 @@ export default function ChatScreen() {
       // 5. POST to REST API
       await messageApi.sendMessage(payload);
       
-      // Update status to sent (We need to update the message store, but for now we'll just log)
+      // Update status to sent 
+      await updateMessageStatus(contact.id, clientMessageId, 'sent');
       console.log('Message Sent:', clientMessageId);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to encrypt/send:', err);
+      if (clientMessageId) {
+        await updateMessageStatus(contact.id, clientMessageId, 'failed');
+      }
+      if (err.response) {
+        Alert.alert('Message Sent Failed', JSON.stringify(err.response.data, null, 2));
+      } else {
+        Alert.alert('Send Error', err?.message || JSON.stringify(err) || 'Unknown Error');
+      }
     }
   };
 

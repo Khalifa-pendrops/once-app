@@ -38,7 +38,7 @@ export default function AddContactModal() {
         return;
       }
 
-      // We'll use the first available x25519 key for now
+      // The backend already sorts active keys by createdAt desc, so use the first one.
       const primaryKey = keyData.keys[0];
 
       // 3. Add to local store

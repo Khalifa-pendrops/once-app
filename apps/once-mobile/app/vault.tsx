@@ -29,6 +29,7 @@ const { width } = Dimensions.get('window');
 export default function VaultAuth() {
   const router = useRouter();
   const setAuth = useAuthStore(state => state.setAuth);
+  const setPublicKey = useAuthStore(state => state.setPublicKey);
   
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -50,8 +51,30 @@ export default function VaultAuth() {
     try {
       if (isLogin) {
         const result = await authApi.login({ email, password });
-        await setAuth(result.token, result.userId);
-        router.replace('/(tabs)');
+        
+        // Save the token silently to SecureStorage so apiClient interceptor can use it 
+        // for the subsequent authenticated device calls, BEFORE we trigger app navigation via setAuth.
+        await StorageService.setItem(KEYS.AUTH_TOKEN, result.token);
+        
+        const publicKey = await StorageService.getItem(KEYS.IDENTITY_PUBLIC_KEY);
+        if (!publicKey) {
+          throw new Error('Identity keys missing. Please reinstall the app to repeat the ritual.');
+        }
+
+        // Register this device's installation
+        const deviceResult = await authApi.registerDevice(Platform.OS + ' ' + Platform.Version);
+        
+        // Upload the new identity public key
+        await authApi.registerKey({
+          deviceId: deviceResult.deviceId,
+          keyType: 'x25519',
+          publicKey
+        });
+
+        // Finally, commit to the global store which fires navigation
+        setPublicKey(publicKey);
+        await setAuth(result.token, result.userId, deviceResult.deviceId);
+        router.replace('/(tabs)' as any);
       } else {
         // Registration Flow
         const publicKey = await StorageService.getItem(KEYS.IDENTITY_PUBLIC_KEY);
@@ -70,8 +93,9 @@ export default function VaultAuth() {
 
         // After registration, server usually requires login or returns token
         const loginResult = await authApi.login({ email, password });
+        setPublicKey(publicKey);
         await setAuth(loginResult.token, loginResult.userId, registerResult.deviceId);
-        router.replace('/(tabs)');
+        router.replace('/(tabs)' as any);
       }
       
       // @ts-ignore
