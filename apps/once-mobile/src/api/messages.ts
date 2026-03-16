@@ -25,15 +25,29 @@ export const messageApi = {
       throw new Error("Missing authentication credentials");
     }
 
-    const response = await fetch('https://once-app-qdwh.onrender.com/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'x-device-id': deviceId
-      },
-      body: JSON.stringify(data)
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    let response: Response;
+    try {
+      response = await fetch('https://once-app-qdwh.onrender.com/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+          'x-device-id': deviceId
+        },
+        body: JSON.stringify(data),
+        signal: controller.signal,
+      });
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        throw new Error('Message request timed out after 15 seconds');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) {
         const errorText = await response.text();
