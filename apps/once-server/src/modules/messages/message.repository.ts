@@ -180,14 +180,21 @@ export class MessageRepository {
     const msgKey = `once:msg:${member}`;
 
     // ✅ Idempotent ACK: Success if message is already gone
-    const exists = await redis.exists(msgKey);
-    if (!exists) return true;
+    const raw = await redis.get(msgKey);
+    if (!raw) return null;
+
+    let parsed: StoredEncryptedMessage | null = null;
+    try {
+      parsed = JSON.parse(raw as string) as StoredEncryptedMessage;
+    } catch {
+      parsed = null;
+    }
 
     const multi = redis.multi();
     multi.del(msgKey);
     multi.sRem(inboxKey, member);
     await multi.exec();
 
-    return true;
+    return parsed;
   }
 }

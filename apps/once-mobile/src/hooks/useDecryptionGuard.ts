@@ -3,6 +3,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as Haptics from 'expo-haptics';
 import { useAuthStore } from '../store/authStore';
 import { StorageService, KEYS } from '../services/storage/secureStorage';
+import { wsClient } from '../services/ws/wsClient';
 
 export function useDecryptionGuard() {
   const { setUnlocked, setDecryptedKey, isUnlocked } = useAuthStore();
@@ -38,6 +39,7 @@ export function useDecryptionGuard() {
       // 2. Load into memory store
       setDecryptedKey(privateKey);
       setUnlocked(true);
+      await wsClient.syncPendingMessages();
 
       // @ts-ignore
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

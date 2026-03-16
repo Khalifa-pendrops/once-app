@@ -1,7 +1,9 @@
 import { useAuthStore } from '../../store/authStore';
+import { messageApi } from '../../api/messages';
 
 // WS URL mapping from HTTPS
 const WS_URL = 'wss://once-app-qdwh.onrender.com/ws';
+const ACKNOWLEDGED_MESSAGE_TTL_MS = 5000;
 
 class WebSocketClient {
   private socket: WebSocket | null = null;
@@ -33,7 +35,13 @@ class WebSocketClient {
 
     this.socket.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
+        const raw = typeof event.data === 'string' ? event.data : String(event.data);
+
+        if (raw === 'pong') {
+          return;
+        }
+
+        const data = JSON.parse(raw);
         console.log('[WS] Received:', data);
         
         switch (data.type) {
@@ -46,6 +54,10 @@ class WebSocketClient {
             break;
           case 'ack_ok':
             console.log('[WS] Message ACKed by server:', data.messageId);
+            break;
+          case 'message_acked':
+            console.log('[WS] Outgoing message acknowledged:', data.messageId);
+            void this.handleOutgoingAcknowledgement(data.messageId);
             break;
         }
       } catch (err) {
@@ -64,60 +76,38 @@ class WebSocketClient {
     };
   }
 
-  private async handleIncomingMessage(data: any) {
+  private async storeIncomingMessage(data: any) {
     try {
-      // 1. Extract payload based on push type
       let nonce, ciphertext, senderPublicKey;
       
       if (data.type === 'message') {
         ({ nonce, ciphertext, senderPublicKey } = data);
       } else if (data.type === 'pending') {
-        const payloadStr = typeof data.payload === 'string' ? data.payload : JSON.stringify(data.payload);
-        if (!payloadStr) return;
-        const payload = JSON.parse(payloadStr);
-        ({ nonce, ciphertext, senderPublicKey } = payload);
+        // Pending payloads are sent by the server in the same flat shape as live messages.
+        ({ nonce, ciphertext, senderPublicKey } = data);
       } else {
         return;
       }
 
-      const { decryptedKey } = useAuthStore.getState();
-
-      if (!decryptedKey) {
-        console.warn('[WS] Cannot decrypt message: Vault is locked.');
-        return;
-      }
-
-      // 2. Decrypt the message
-      const { E2EService } = await import('../crypto/e2e');
-      const plaintext = E2EService.decryptMessage(
-        ciphertext,
-        nonce,
-        senderPublicKey,
-        decryptedKey
-      );
-
-      console.log('[WS] Decrypted message from:', data.senderUserId);
-
-      // 3. Save to Message Store
       const { useMessageStore } = await import('../../store/messageStore');
       const { addMessage } = useMessageStore.getState();
 
       const messageRecord = {
         id: data.clientMessageId || data.messageId,
+        serverMessageId: data.messageId,
         senderId: data.senderUserId,
         recipientId: useAuthStore.getState().userId || '',
-        text: plaintext,
-        timestamp: data.createdAt || new Date().toISOString(),
+        text: '',
+        timestamp: data.createdAt ? new Date(data.createdAt).toISOString() : new Date().toISOString(),
         isRead: false,
         status: 'delivered' as const,
+        isLocked: true,
+        nonce,
+        ciphertext,
+        senderPublicKey,
       };
 
       await addMessage(data.senderUserId, messageRecord);
-
-      // 4. Ack only after the message is persisted locally.
-      this.send({ type: 'ack', messageId: data.messageId });
-
-      // 5. Add contact if missing
       const { useContactStore } = await import('../../store/contactStore');
       const { addContact } = useContactStore.getState();
       
@@ -129,8 +119,37 @@ class WebSocketClient {
         status: 'pending' // we haven't officially added them
       });
 
+      return true;
+
     } catch (err) {
       console.error('[WS] Failed to process incoming message:', err);
+      return false;
+    }
+  }
+
+  private async handleIncomingMessage(data: any) {
+    await this.storeIncomingMessage(data);
+  }
+
+  async syncPendingMessages() {
+    try {
+      const { messages } = await messageApi.listPendingMessages();
+
+      for (const message of messages) {
+        await this.storeIncomingMessage({ ...message, type: 'pending' });
+      }
+    } catch (err) {
+      console.error('[WS] Failed to sync pending messages:', err);
+    }
+  }
+
+  private async handleOutgoingAcknowledgement(serverMessageId: string) {
+    try {
+      const { useMessageStore } = await import('../../store/messageStore');
+      const { acknowledgeOutgoingMessage } = useMessageStore.getState();
+      await acknowledgeOutgoingMessage(serverMessageId, Date.now() + ACKNOWLEDGED_MESSAGE_TTL_MS);
+    } catch (err) {
+      console.error('[WS] Failed to update outgoing acknowledgement:', err);
     }
   }
 

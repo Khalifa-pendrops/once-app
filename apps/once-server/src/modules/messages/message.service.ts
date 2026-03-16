@@ -87,10 +87,24 @@ export class MessageService {
     if (!deviceId?.trim()) throw new Error("deviceId is required");
     if (!messageId?.trim()) throw new Error("messageId is required");
     
-    await this.repo.ackForDevice(userId.trim(), deviceId.trim(), messageId.trim());
+    const ackedMessage = await this.repo.ackForDevice(userId.trim(), deviceId.trim(), messageId.trim());
     
     // Structured Logging: Message Acked
     console.log(`[MESSAGE_ACKED] messageId=${messageId} recipient=${userId}/${deviceId} event=acked`);
+
+    if (ackedMessage) {
+      const senderSocket = wsManager.getDeviceSocket(ackedMessage.senderUserId, ackedMessage.senderDeviceId);
+      if (senderSocket) {
+        senderSocket.send(
+          JSON.stringify({
+            type: "message_acked",
+            messageId,
+            recipientUserId: userId,
+            recipientDeviceId: deviceId,
+          })
+        );
+      }
+    }
   }
 
   async markDelivered(userId: string, deviceId: string, messageId: string) {

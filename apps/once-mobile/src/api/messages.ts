@@ -13,10 +13,17 @@ export type SendMessageRequest = {
   payloads: EncryptedPayload[];
 };
 
+export type SendMessageResponse = {
+  messageId: string;
+  expiresInSeconds: number;
+  createdAt: number;
+  expiresAt: number;
+};
+
 import { StorageService, KEYS } from '../services/storage/secureStorage';
 
 export const messageApi = {
-  sendMessage: async (data: SendMessageRequest): Promise<void> => {
+  sendMessage: async (data: SendMessageRequest): Promise<SendMessageResponse> => {
     // Manually construct the native fetch request to bypass Axios 1.x RN bugs
     const token = await StorageService.getItem(KEYS.AUTH_TOKEN);
     const deviceId = await StorageService.getItem(KEYS.DEVICE_ID);
@@ -63,5 +70,16 @@ export const messageApi = {
             response: { data: errData, status: response.status } 
         };
     }
+
+    return response.json();
+  },
+
+  listPendingMessages: async (): Promise<{ messages: any[] }> => {
+    const response = await apiClient.get<{ messages: any[] }>('/messages/pending');
+    return response.data;
+  },
+
+  acknowledgeMessage: async (messageId: string): Promise<void> => {
+    await apiClient.post(`/messages/${messageId}/ack`);
   },
 };

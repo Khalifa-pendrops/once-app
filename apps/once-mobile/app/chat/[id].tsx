@@ -12,6 +12,8 @@ import { messageApi } from '../../src/api/messages';
 import { COLORS } from '../../src/constants/theme';
 import { DecryptionGuard } from '../../src/components/auth/DecryptionGuard';
 
+const OPENED_MESSAGE_TTL_MS = 5000;
+
 const StyledView = View as any;
 const StyledText = Text as any;
 const StyledTextInput = TextInput as any;
@@ -26,7 +28,7 @@ export default function ChatScreen() {
   const { contacts } = useContactStore();
   const contact = contacts.find(c => c.id === id);
   
-  const { messages, addMessage, updateMessageStatus, initialize: initMessages } = useMessageStore();
+  const { messages, addMessage, updateMessageStatus, initialize: initMessages, unlockMessage } = useMessageStore();
   const contactMessages = messages[id || ''] || [];
   
   const { userId, decryptedKey, publicKey } = useAuthStore();
@@ -45,6 +47,31 @@ export default function ChatScreen() {
         }, 100);
     }
   }, [contactMessages]);
+
+  const handleOpenLockedMessage = async (message: ChatMessage) => {
+    if (!contact || !decryptedKey || !message.isLocked || !message.nonce || !message.ciphertext || !message.senderPublicKey) {
+      return;
+    }
+
+    try {
+      const plaintext = E2EService.decryptMessage(
+        message.ciphertext,
+        message.nonce,
+        message.senderPublicKey,
+        decryptedKey
+      );
+
+      const expiresAt = Date.now() + OPENED_MESSAGE_TTL_MS;
+      await unlockMessage(contact.id, message.id, plaintext, expiresAt);
+
+      if (message.serverMessageId) {
+        await messageApi.acknowledgeMessage(message.serverMessageId);
+      }
+    } catch (err: any) {
+      console.error('Failed to unlock message:', err);
+      Alert.alert('Unlock Failed', err?.message || 'Unable to decrypt this message.');
+    }
+  };
 
   const handleSend = async () => {
     if (!inputText.trim() || !contact || !userId || !decryptedKey) return;
@@ -97,10 +124,10 @@ export default function ChatScreen() {
       };
 
       // 5. POST to REST API
-      await messageApi.sendMessage(payload);
+      const result = await messageApi.sendMessage(payload);
       
       // Update status to sent 
-      await updateMessageStatus(contact.id, clientMessageId, 'sent');
+      await updateMessageStatus(contact.id, clientMessageId, 'sent', result.expiresAt, result.messageId);
       console.log('Message Sent:', clientMessageId);
 
     } catch (err: any) {
@@ -121,17 +148,32 @@ export default function ChatScreen() {
     
     return (
       <StyledView className={`mb-4 max-w-[80%] ${isMe ? 'self-end' : 'self-start'}`}>
-        <StyledView 
-          className={`px-4 py-3 rounded-2xl ${
-            isMe 
-              ? 'bg-primary rounded-tr-sm' 
-              : 'bg-surface border border-border/20 rounded-tl-sm'
-          }`}
+        <StyledTouchableOpacity
+          activeOpacity={item.isLocked && !isMe ? 0.75 : 1}
+          disabled={!item.isLocked || isMe}
+          onPress={() => handleOpenLockedMessage(item)}
         >
-          <StyledText className={`text-base leading-5 ${isMe ? 'text-background' : 'text-white'}`}>
-            {item.text}
-          </StyledText>
-        </StyledView>
+          <StyledView 
+            className={`px-4 py-3 rounded-2xl ${
+              isMe 
+                ? 'bg-primary rounded-tr-sm' 
+                : 'bg-surface border border-border/20 rounded-tl-sm'
+            }`}
+          >
+            {item.isLocked && !isMe ? (
+              <StyledView className="flex-row items-center">
+                <Ionicons name="key-outline" size={16} color={COLORS.primary} />
+                <StyledText className="text-white ml-2 text-base leading-5">
+                  Tap to unlock
+                </StyledText>
+              </StyledView>
+            ) : (
+              <StyledText className={`text-base leading-5 ${isMe ? 'text-background' : 'text-white'}`}>
+                {item.text}
+              </StyledText>
+            )}
+          </StyledView>
+        </StyledTouchableOpacity>
         <StyledText className={`text-[10px] text-muted mt-1 px-1 ${isMe ? 'text-right' : 'text-left'}`}>
           {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           {isMe && ` · ${item.status}`}
@@ -204,7 +246,8 @@ export default function ChatScreen() {
               placeholderTextColor={COLORS.muted}
               value={inputText}
               onChangeText={setInputText}
-              multiline
+              onSubmitEditing={handleSend}
+              returnKeyType="send"
               maxLength={1000}
             />
             <StyledTouchableOpacity 
