@@ -11,6 +11,7 @@ import { E2EService } from '../../src/services/crypto/e2e';
 import { messageApi } from '../../src/api/messages';
 import { COLORS } from '../../src/constants/theme';
 import { DecryptionGuard } from '../../src/components/auth/DecryptionGuard';
+import { keyApi } from '../../src/api/keys';
 
 const OPENED_MESSAGE_TTL_MS = 5000;
 
@@ -98,12 +99,14 @@ export default function ChatScreen() {
       // 2. Add to Local Store immediately for optimistic UI
       await addMessage(contact.id, newMessage);
 
-      // 3. Encrypt payload
-      const { nonce, ciphertext } = E2EService.encryptMessage(
-        messageText,
-        decryptedKey,
-        contact.publicKey
+      const keyData = await keyApi.getContactKeys(contact.id);
+      const uniqueRecipientKeys = keyData.keys.filter(
+        (key, index, keys) => keys.findIndex((candidate) => candidate.deviceId === key.deviceId) === index
       );
+
+      if (uniqueRecipientKeys.length === 0) {
+        throw new Error('Recipient has no active device keys.');
+      }
 
       // 4. Construct API payload exactly as expected by MessageRoutes
       if (!publicKey) {
@@ -111,18 +114,24 @@ export default function ChatScreen() {
           await updateMessageStatus(contact.id, clientMessageId, 'failed');
           return;
       }
-      
+
       const payload = {
         recipientUserId: contact.id,
         clientMessageId,
-        payloads: [
-          {
-            deviceId: contact.deviceId,
+        payloads: uniqueRecipientKeys.map((recipientKey) => {
+          const { nonce, ciphertext } = E2EService.encryptMessage(
+            messageText,
+            decryptedKey,
+            recipientKey.publicKey
+          );
+
+          return {
+            deviceId: recipientKey.deviceId,
             nonce,
             ciphertext,
             senderPublicKey: publicKey
-          }
-        ]
+          };
+        })
       };
 
       // 5. POST to REST API
