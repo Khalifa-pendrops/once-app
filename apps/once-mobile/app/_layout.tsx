@@ -5,7 +5,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
-import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text } from 'react-native';
 import '../global.css';
 
 import { useColorScheme } from '@/components/useColorScheme';
@@ -23,6 +23,7 @@ SplashScreen.preventAutoHideAsync();
 
 const StyledView = View as any;
 const StyledText = Text as any;
+const TERMINAL_AMBER = '#F6C177';
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -91,7 +92,12 @@ export default function RootLayout() {
   if (!loaded || !isAuthRestored) {
     return (
       <StyledView style={{ flex: 1, backgroundColor: '#000', alignItems: 'center', justifyContent: 'center' }}>
-        <StyledText style={{ color: '#fff', fontSize: 10, opacity: 0.5 }}>Loading Secure Environment...</StyledText>
+        <StyledText style={{ color: '#737373', fontSize: 10, opacity: 0.9, fontFamily: 'SpaceMono', letterSpacing: 2, textTransform: 'uppercase' }}>
+          secure://boot-sequence
+        </StyledText>
+        <StyledText style={{ color: TERMINAL_AMBER, fontSize: 13, marginTop: 10, fontFamily: 'SpaceMono', letterSpacing: 1, textTransform: 'uppercase' }}>
+          Loading Secure Environment
+        </StyledText>
       </StyledView>
     );
   }

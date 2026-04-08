@@ -14,8 +14,33 @@ model User {
   createdAt    DateTime @default(now())
 
   devices Device[]
+  sentContactRequests     ContactRequest[] @relation("SentContactRequests")
+  receivedContactRequests ContactRequest[] @relation("ReceivedContactRequests")
 
   @@map("users")
+}
+
+model ContactRequest {
+  id              String               @id @default(uuid())
+  requesterUserId String
+  recipientUserId String
+  status          ContactRequestStatus @default(PENDING)
+  createdAt       DateTime             @default(now())
+  respondedAt     DateTime?
+
+  requester User @relation("SentContactRequests", fields: [requesterUserId], references: [id], onDelete: Cascade)
+  recipient User @relation("ReceivedContactRequests", fields: [recipientUserId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterUserId, recipientUserId])
+  @@index([recipientUserId, status])
+  @@index([requesterUserId, status])
+  @@map("contact_requests")
+}
+
+enum ContactRequestStatus {
+  PENDING
+  ACCEPTED
+  IGNORED
 }
 
 model Device {

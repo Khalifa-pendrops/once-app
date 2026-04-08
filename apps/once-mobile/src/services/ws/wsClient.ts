@@ -47,10 +47,17 @@ class WebSocketClient {
         switch (data.type) {
           case 'welcome':
             console.log('[WS] Handshake established.');
+            void this.syncPendingMessages();
             break;
           case 'pending':
           case 'message':
             this.handleIncomingMessage(data);
+            break;
+          case 'contact_request':
+            void this.handleIncomingContactRequest(data.request);
+            break;
+          case 'contact_request_accepted':
+            void this.handleAcceptedContactRequest(data.request);
             break;
           case 'ack_ok':
             console.log('[WS] Message ACKed by server:', data.messageId);
@@ -129,6 +136,28 @@ class WebSocketClient {
 
   private async handleIncomingMessage(data: any) {
     await this.storeIncomingMessage(data);
+  }
+
+  private async handleIncomingContactRequest(request: any) {
+    try {
+      const { useContactStore } = await import('../../store/contactStore');
+      const { upsertIncomingRequest } = useContactStore.getState();
+      await upsertIncomingRequest(request);
+    } catch (err) {
+      console.error('[WS] Failed to process incoming contact request:', err);
+    }
+  }
+
+  private async handleAcceptedContactRequest(request: any) {
+    try {
+      const { useContactStore } = await import('../../store/contactStore');
+      const { upsertOutgoingRequest, updateContactStatus } = useContactStore.getState();
+
+      await upsertOutgoingRequest(request);
+      await updateContactStatus(request.recipientUserId, 'accepted');
+    } catch (err) {
+      console.error('[WS] Failed to process accepted contact request:', err);
+    }
   }
 
   async syncPendingMessages() {

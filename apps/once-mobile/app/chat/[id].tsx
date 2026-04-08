@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, Alert, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,8 @@ const StyledTextInput = TextInput as any;
 const StyledTouchableOpacity = TouchableOpacity as any;
 const StyledFlatList = FlatList as any;
 const StyledKeyboardAvoidingView = KeyboardAvoidingView as any;
+const TERMINAL_AMBER = '#F6C177';
+const TERMINAL_CYAN = '#67E8F9';
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -154,21 +156,22 @@ export default function ChatScreen() {
           onPress={() => handleOpenLockedMessage(item)}
         >
           <StyledView 
-            className={`px-4 py-3 rounded-2xl ${
+            className={`px-4 py-3 ${
               isMe 
-                ? 'bg-primary rounded-tr-sm' 
-                : 'bg-surface border border-border/20 rounded-tl-sm'
+                ? '' 
+                : ''
             }`}
+            style={isMe ? styles.myMessageBubble : styles.peerMessageBubble}
           >
             {item.isLocked && !isMe ? (
               <StyledView className="flex-row items-center">
-                <Ionicons name="key-outline" size={16} color={COLORS.primary} />
-                <StyledText className="text-white ml-2 text-base leading-5">
+                <Ionicons name="key-outline" size={16} color={TERMINAL_AMBER} />
+                <StyledText className="ml-2 text-base leading-5 font-mono uppercase tracking-[2px]" style={styles.lockedMessageText}>
                   Tap to unlock
                 </StyledText>
               </StyledView>
             ) : (
-              <StyledText className={`text-base leading-5 ${isMe ? 'text-background' : 'text-white'}`}>
+              <StyledText className="text-base leading-5" style={isMe ? styles.myMessageText : styles.peerMessageText}>
                 {item.text}
               </StyledText>
             )}
@@ -185,9 +188,9 @@ export default function ChatScreen() {
   if (!contact) {
     return (
       <StyledView className="flex-1 bg-background justify-center items-center px-6">
-        <StyledText className="text-white">Contact not found or missing keys.</StyledText>
-        <StyledTouchableOpacity onPress={() => router.back()} className="mt-4 p-4 border border-border/30 rounded-xl">
-           <StyledText className="text-muted">Return to Vault</StyledText>
+        <StyledText className="font-mono text-xs uppercase tracking-[2px]" style={styles.emptyText}>Contact not found or missing keys.</StyledText>
+        <StyledTouchableOpacity onPress={() => router.back()} className="mt-4 px-5 py-4" style={styles.returnButton}>
+           <StyledText className="font-mono text-xs uppercase tracking-[3px]" style={styles.returnButtonText}>Return to Vault</StyledText>
         </StyledTouchableOpacity>
       </StyledView>
     );
@@ -204,18 +207,21 @@ export default function ChatScreen() {
         {/* Header */}
         <StyledView className="flex-row items-center px-6 pt-14 pb-4 border-b border-border/10 bg-background/90 z-10">
           <StyledTouchableOpacity onPress={() => router.back()} className="mr-4 p-2 -ml-2">
-            <Ionicons name="chevron-back" size={28} color={COLORS.primary} />
+            <Ionicons name="chevron-back" size={28} color={TERMINAL_AMBER} />
           </StyledTouchableOpacity>
           <StyledView className="flex-1">
-            <StyledText className="text-white font-bold text-lg tracking-tight">
+            <StyledText className="text-muted text-[10px] font-mono uppercase tracking-[3px] mb-1">
+              secure://relay-thread
+            </StyledText>
+            <StyledText className="font-bold text-lg tracking-tight" style={styles.threadTitle}>
               {contact.email.split('@')[0]}
             </StyledText>
-            <StyledText className="text-muted text-xs font-mono">
+            <StyledText className="text-xs font-mono uppercase tracking-[2px]" style={styles.threadStatus}>
               E2EE Tunnel Active
             </StyledText>
           </StyledView>
-          <StyledView className="w-10 h-10 rounded-full bg-surface items-center justify-center border border-border/20">
-            <Ionicons name="person" size={18} color={COLORS.muted} />
+          <StyledView style={styles.threadAvatar}>
+            <Ionicons name="person" size={18} color={TERMINAL_CYAN} />
           </StyledView>
         </StyledView>
 
@@ -230,7 +236,7 @@ export default function ChatScreen() {
            ListEmptyComponent={
              <StyledView className="items-center justify-center mt-20 opacity-50">
                <Ionicons name="lock-closed-outline" size={48} color={COLORS.muted} />
-               <StyledText className="text-muted text-center mt-4 px-10">
+               <StyledText className="text-muted text-center mt-4 px-10 font-mono text-xs uppercase tracking-[2px]">
                  End-to-end encrypted relay established. Messages are secured with unique x25519 keys.
                </StyledText>
              </StyledView>
@@ -239,7 +245,7 @@ export default function ChatScreen() {
 
         {/* Input Area */}
         <StyledView className="px-6 py-4 border-t border-border/10 bg-background pb-10">
-          <StyledView className="flex-row items-center bg-surface border border-border/20 rounded-full pl-5 pr-2 py-2">
+          <StyledView style={styles.inputShell}>
             <StyledTextInput
               className="flex-1 text-white text-base min-h-[40px]"
               placeholder="Encrypt message..."
@@ -253,14 +259,13 @@ export default function ChatScreen() {
             <StyledTouchableOpacity 
               disabled={!inputText.trim()}
               onPress={handleSend}
-              className={`w-10 h-10 rounded-full items-center justify-center ml-2 ${
-                inputText.trim() ? 'bg-primary' : 'bg-surface border border-border/10'
-              }`}
+              className="w-10 h-10 items-center justify-center ml-2"
+              style={inputText.trim() ? styles.sendButtonActive : styles.sendButtonIdle}
             >
               <Ionicons 
                 name="arrow-up" 
                 size={20} 
-                color={inputText.trim() ? COLORS.background : COLORS.muted} 
+                color={inputText.trim() ? TERMINAL_AMBER : COLORS.muted} 
               />
             </StyledTouchableOpacity>
           </StyledView>
@@ -270,3 +275,86 @@ export default function ChatScreen() {
     </DecryptionGuard>
   );
 }
+
+const styles = StyleSheet.create({
+  threadTitle: {
+    color: TERMINAL_AMBER,
+  },
+  threadStatus: {
+    color: '#8B8B8B',
+  },
+  threadAvatar: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(103, 232, 249, 0.28)',
+    borderRadius: 4,
+    backgroundColor: '#050505',
+  },
+  myMessageBubble: {
+    borderWidth: 1,
+    borderColor: 'rgba(246, 193, 119, 0.4)',
+    borderRadius: 4,
+    backgroundColor: '#090909',
+  },
+  peerMessageBubble: {
+    borderWidth: 1,
+    borderColor: 'rgba(103, 232, 249, 0.18)',
+    borderRadius: 4,
+    backgroundColor: '#050505',
+  },
+  myMessageText: {
+    color: TERMINAL_AMBER,
+  },
+  peerMessageText: {
+    color: '#E5E5E5',
+  },
+  lockedMessageText: {
+    color: TERMINAL_AMBER,
+  },
+  inputShell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 18,
+    paddingRight: 8,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(246, 193, 119, 0.16)',
+    borderRadius: 4,
+    backgroundColor: '#050505',
+  },
+  sendButtonActive: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(246, 193, 119, 0.4)',
+    borderRadius: 4,
+    backgroundColor: '#0A0A0A',
+  },
+  sendButtonIdle: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(115, 115, 115, 0.18)',
+    borderRadius: 4,
+    backgroundColor: '#050505',
+  },
+  emptyText: {
+    color: '#8B8B8B',
+  },
+  returnButton: {
+    borderWidth: 1,
+    borderColor: 'rgba(246, 193, 119, 0.3)',
+    borderRadius: 4,
+    backgroundColor: '#050505',
+  },
+  returnButtonText: {
+    color: TERMINAL_AMBER,
+  },
+});

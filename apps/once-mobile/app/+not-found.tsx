@@ -1,40 +1,34 @@
+import React from 'react';
 import { Link, Stack } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 
-import { Text, View } from '@/components/Themed';
+const StyledView = View as any;
+const StyledText = Text as any;
+const StyledTouchableOpacity = TouchableOpacity as any;
 
 export default function NotFoundScreen() {
   return (
     <>
-      <Stack.Screen options={{ title: 'Oops!' }} />
-      <View style={styles.container}>
-        <Text style={styles.title}>This screen doesn't exist.</Text>
+      <Stack.Screen options={{ title: 'Missing Route', headerShown: false }} />
+      <StyledView className="flex-1 bg-background items-center justify-center px-8">
+        <StyledText className="text-muted font-mono text-[10px] uppercase tracking-[3px] mb-3">
+          secure://null-route
+        </StyledText>
+        <StyledText className="text-3xl font-bold tracking-tight mb-4" style={{ color: '#F6C177' }}>
+          Route Not Found
+        </StyledText>
+        <StyledText className="text-center font-mono text-xs uppercase tracking-[2px] mb-8" style={{ color: '#8B8B8B' }}>
+          {'> requested surface does not exist inside this vault map'}
+        </StyledText>
 
-        <Link href="/" style={styles.link}>
-          <Text style={styles.linkText}>Go to home screen!</Text>
+        <Link href="/" asChild>
+          <StyledTouchableOpacity className="px-5 py-4" style={{ borderWidth: 1, borderColor: 'rgba(246, 193, 119, 0.3)', borderRadius: 4, backgroundColor: '#050505' }}>
+            <StyledText className="font-mono text-xs uppercase tracking-[3px]" style={{ color: '#F6C177' }}>
+              Return Home
+            </StyledText>
+          </StyledTouchableOpacity>
         </Link>
-      </View>
+      </StyledView>
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
-  },
-  linkText: {
-    fontSize: 14,
-    color: '#2e78b7',
-  },
-});

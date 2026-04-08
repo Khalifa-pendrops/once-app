@@ -1,31 +1,21 @@
-import { StyleSheet } from 'react-native';
+import React from 'react';
+import { View, Text } from 'react-native';
 
-import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View } from '@/components/Themed';
+const StyledView = View as any;
+const StyledText = Text as any;
 
 export default function TabTwoScreen() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Tab Two</Text>
-      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
-      <EditScreenInfo path="app/(tabs)/two.tsx" />
-    </View>
+    <StyledView className="flex-1 bg-background items-center justify-center px-8">
+      <StyledText className="text-muted font-mono text-[10px] uppercase tracking-[3px] mb-3">
+        secure://stats-node
+      </StyledText>
+      <StyledText className="text-3xl font-bold tracking-tight mb-4" style={{ color: '#F6C177' }}>
+        Metrics Pending
+      </StyledText>
+      <StyledText className="text-center font-mono text-xs uppercase tracking-[2px]" style={{ color: '#8B8B8B' }}>
+        {'> telemetry surface reserved // analytical screens not yet wired'}
+      </StyledText>
+    </StyledView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  separator: {
-    marginVertical: 30,
-    height: 1,
-    width: '80%',
-  },
-});
