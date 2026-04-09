@@ -32,6 +32,7 @@ interface ContactState {
   upsertIncomingRequest: (request: ContactRequest) => Promise<void>;
   upsertOutgoingRequest: (request: ContactRequest) => Promise<void>;
   removeIncomingRequest: (requestId: string) => Promise<void>;
+  reset: () => Promise<void>;
   initialize: () => Promise<void>;
 }
 
@@ -118,6 +119,16 @@ export const useContactStore = create<ContactState>((set, get) => ({
     const nextIncoming = incomingRequests.filter(r => r.id !== requestId);
     await persistRequests(nextIncoming, outgoingRequests);
     set({ incomingRequests: nextIncoming });
+  },
+
+  reset: async () => {
+    await StorageService.removeItem(CONTACTS_KEY);
+    await StorageService.removeItem(CONTACT_REQUESTS_KEY);
+    set({
+      contacts: [],
+      incomingRequests: [],
+      outgoingRequests: [],
+    });
   },
 
   initialize: async () => {

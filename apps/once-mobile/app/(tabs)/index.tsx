@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StatusBar, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StatusBar, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { DecryptionGuard } from '../../src/components/auth/DecryptionGuard';
 import { COLORS } from '../../src/constants/theme';
@@ -7,6 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useContactStore, Contact, ContactRequest } from '../../src/store/contactStore';
 import { contactRequestApi } from '../../src/api/contactRequests';
 import { keyApi } from '../../src/api/keys';
+import { useAuthStore } from '../../src/store/authStore';
+import { useMessageStore } from '../../src/store/messageStore';
 
 const StyledView = View as any;
 const StyledText = Text as any;
@@ -16,6 +18,9 @@ const TERMINAL_CYAN = '#67E8F9';
 
 export default function ChatListScreen() {
   const router = useRouter();
+  const logout = useAuthStore((state) => state.logout);
+  const resetContacts = useContactStore((state) => state.reset);
+  const resetMessages = useMessageStore((state) => state.reset);
   const {
     contacts,
     incomingRequests,
@@ -78,6 +83,29 @@ export default function ChatListScreen() {
     } catch (error) {
       console.error('Failed to accept contact request:', error);
     }
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Sign Out',
+      'This will clear the current session on this device and return you to the vault login.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await resetMessages();
+              await resetContacts();
+              await logout();
+            } catch (error) {
+              console.error('Failed to sign out cleanly:', error);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderItem = ({ item }: { item: Contact }) => (
@@ -160,12 +188,20 @@ export default function ChatListScreen() {
             </StyledView>
           </StyledView>
           
-          <StyledTouchableOpacity 
-            style={styles.addButton}
-            onPress={() => router.push('/modal')}
-          >
-            <Ionicons name="add-outline" size={22} color={TERMINAL_AMBER} />
-          </StyledTouchableOpacity>
+          <StyledView className="flex-row items-center">
+            <StyledTouchableOpacity
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={18} color={TERMINAL_CYAN} />
+            </StyledTouchableOpacity>
+            <StyledTouchableOpacity 
+              style={styles.addButton}
+              onPress={() => router.push('/modal')}
+            >
+              <Ionicons name="add-outline" size={22} color={TERMINAL_AMBER} />
+            </StyledTouchableOpacity>
+          </StyledView>
         </StyledView>
 
         {contacts.length === 0 && incomingRequests.length === 0 ? (
@@ -222,6 +258,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'rgba(246, 193, 119, 0.4)',
+    borderRadius: 4,
+    backgroundColor: '#050505',
+  },
+  logoutButton: {
+    width: 42,
+    height: 42,
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(103, 232, 249, 0.35)',
     borderRadius: 4,
     backgroundColor: '#050505',
   },

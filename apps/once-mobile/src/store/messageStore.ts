@@ -36,6 +36,7 @@ interface MessageState {
     expiresAt?: number
   ) => Promise<void>;
   acknowledgeOutgoingMessage: (serverMessageId: string, expiresAt?: number) => Promise<void>;
+  reset: () => Promise<void>;
   initialize: () => Promise<void>;
 }
 
@@ -244,6 +245,15 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         }, delay)
       );
     }
+  },
+
+  reset: async () => {
+    for (const timer of expiryTimers.values()) {
+      clearTimeout(timer);
+    }
+    expiryTimers.clear();
+    await StorageService.removeItem('chat_history');
+    set({ messages: {} });
   },
 
   initialize: async () => {

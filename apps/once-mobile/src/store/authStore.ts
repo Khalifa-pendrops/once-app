@@ -58,8 +58,16 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     await StorageService.removeItem(KEYS.AUTH_TOKEN);
+    await StorageService.removeItem(KEYS.USER_ID);
     await StorageService.removeItem(KEYS.DEVICE_ID);
-    set({ token: null, userId: null, deviceId: null, isAuthenticated: false });
+    set({
+      token: null,
+      userId: null,
+      deviceId: null,
+      isAuthenticated: false,
+      decryptedKey: null,
+      isUnlocked: false,
+    });
   },
 
   initialize: async () => {
