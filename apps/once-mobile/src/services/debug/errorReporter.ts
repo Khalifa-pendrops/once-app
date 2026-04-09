@@ -53,13 +53,12 @@ export async function reportClientError(event: {
   try {
     const token = await StorageService.getItem(KEYS.AUTH_TOKEN);
     const deviceId = await StorageService.getItem(KEYS.DEVICE_ID);
-    if (!token) return;
 
     await fetch(`${BASE_URL}/debug/events`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(deviceId ? { 'x-device-id': deviceId } : {}),
       },
       body: JSON.stringify(debugEvent),
