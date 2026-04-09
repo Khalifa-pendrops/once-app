@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { StorageService } from '../services/storage/secureStorage';
+import { useAuthStore } from './authStore';
 
 export interface Contact {
   id: string; // userId
@@ -39,13 +40,18 @@ interface ContactState {
 const CONTACTS_KEY = 'contacts_meta';
 const CONTACT_REQUESTS_KEY = 'contact_requests_meta';
 
+function getScopedStorageKey(baseKey: string) {
+  const userId = useAuthStore.getState().userId;
+  return userId ? `${baseKey}_${userId}` : baseKey;
+}
+
 async function persistContacts(contacts: Contact[]) {
-  await StorageService.setItem(CONTACTS_KEY, JSON.stringify(contacts));
+  await StorageService.setItem(getScopedStorageKey(CONTACTS_KEY), JSON.stringify(contacts));
 }
 
 async function persistRequests(incomingRequests: ContactRequest[], outgoingRequests: ContactRequest[]) {
   await StorageService.setItem(
-    CONTACT_REQUESTS_KEY,
+    getScopedStorageKey(CONTACT_REQUESTS_KEY),
     JSON.stringify({ incomingRequests, outgoingRequests })
   );
 }
@@ -122,8 +128,6 @@ export const useContactStore = create<ContactState>((set, get) => ({
   },
 
   reset: async () => {
-    await StorageService.removeItem(CONTACTS_KEY);
-    await StorageService.removeItem(CONTACT_REQUESTS_KEY);
     set({
       contacts: [],
       incomingRequests: [],
@@ -132,12 +136,17 @@ export const useContactStore = create<ContactState>((set, get) => ({
   },
 
   initialize: async () => {
-    const data = await StorageService.getItem(CONTACTS_KEY);
+    const scopedContactsKey = getScopedStorageKey(CONTACTS_KEY);
+    const scopedRequestsKey = getScopedStorageKey(CONTACT_REQUESTS_KEY);
+
+    const data = await StorageService.getItem(scopedContactsKey);
     if (data) {
       set({ contacts: JSON.parse(data) });
+    } else {
+      set({ contacts: [] });
     }
 
-    const requestData = await StorageService.getItem(CONTACT_REQUESTS_KEY);
+    const requestData = await StorageService.getItem(scopedRequestsKey);
     if (requestData) {
       const parsed = JSON.parse(requestData) as {
         incomingRequests?: ContactRequest[];
@@ -147,6 +156,11 @@ export const useContactStore = create<ContactState>((set, get) => ({
       set({
         incomingRequests: parsed.incomingRequests || [],
         outgoingRequests: parsed.outgoingRequests || [],
+      });
+    } else {
+      set({
+        incomingRequests: [],
+        outgoingRequests: [],
       });
     }
   },

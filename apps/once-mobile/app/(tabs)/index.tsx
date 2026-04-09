@@ -88,7 +88,7 @@ export default function ChatListScreen() {
   const handleLogout = () => {
     Alert.alert(
       'Sign Out',
-      'This will clear the current session on this device and return you to the vault login.',
+      'This will end the current session on this device and return you to the vault login.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -168,69 +168,67 @@ export default function ChatListScreen() {
   );
 
   return (
-    <DecryptionGuard>
-      <StyledView className="flex-1 bg-background pt-14">
-        <StatusBar barStyle="light-content" />
-        
-        <StyledView className="px-6 mb-8 flex-row justify-between items-center">
-          <StyledView>
-            <StyledText className="text-muted font-mono text-[10px] uppercase tracking-[3px] mb-2">
-              secure://vault-index
+    <StyledView className="flex-1 bg-background pt-14">
+      <StatusBar barStyle="light-content" />
+      
+      <StyledView className="px-6 mb-8 flex-row justify-between items-center">
+        <StyledView>
+          <StyledText className="text-muted font-mono text-[10px] uppercase tracking-[3px] mb-2">
+            secure://vault-index
+          </StyledText>
+          <StyledText className="text-3xl font-black tracking-tighter" style={styles.heroTitle}>
+            VAULT
+          </StyledText>
+          <StyledView className="flex-row items-center mt-2">
+            <StyledView style={styles.heroStatusDot} />
+            <StyledText className="text-xs font-mono uppercase tracking-widest" style={styles.heroStatusText}>
+              {contacts.length} Nodes Synced
             </StyledText>
-            <StyledText className="text-3xl font-black tracking-tighter" style={styles.heroTitle}>
-              VAULT
-            </StyledText>
-            <StyledView className="flex-row items-center mt-2">
-              <StyledView style={styles.heroStatusDot} />
-              <StyledText className="text-xs font-mono uppercase tracking-widest" style={styles.heroStatusText}>
-                {contacts.length} Nodes Synced
-              </StyledText>
-            </StyledView>
-          </StyledView>
-          
-          <StyledView className="flex-row items-center">
-            <StyledTouchableOpacity
-              style={styles.logoutButton}
-              onPress={handleLogout}
-            >
-              <Ionicons name="log-out-outline" size={18} color={TERMINAL_CYAN} />
-            </StyledTouchableOpacity>
-            <StyledTouchableOpacity 
-              style={styles.addButton}
-              onPress={() => router.push('/modal')}
-            >
-              <Ionicons name="add-outline" size={22} color={TERMINAL_AMBER} />
-            </StyledTouchableOpacity>
           </StyledView>
         </StyledView>
-
-        {contacts.length === 0 && incomingRequests.length === 0 ? (
-          <StyledView className="flex-1 items-center justify-center px-10">
-            <Ionicons name="scan-outline" size={60} color={COLORS.muted} style={{ opacity: 0.5, marginBottom: 16 }} />
-            <StyledText className="text-muted text-center font-mono text-xs uppercase tracking-[2px]">
-              Your vault is empty. Process a transmission key to establish a secure link.
-            </StyledText>
-          </StyledView>
-        ) : (
-          <FlatList
-            data={contacts}
-            renderItem={renderItem}
-            keyExtractor={item => item.id}
-            contentContainerStyle={{ paddingBottom: 100 }}
-            ListHeaderComponent={
-              incomingRequests.length > 0 ? (
-                <StyledView className="mb-4">
-                  <StyledText className="mx-6 mb-3 text-muted font-mono text-[10px] uppercase tracking-[3px]">
-                    Incoming Requests
-                  </StyledText>
-                  {incomingRequests.map(renderRequestItem)}
-                </StyledView>
-              ) : null
-            }
-          />
-        )}
+        
+        <StyledView className="flex-row items-center">
+          <StyledTouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleLogout}
+          >
+            <Ionicons name="log-out-outline" size={18} color={TERMINAL_CYAN} />
+          </StyledTouchableOpacity>
+          <StyledTouchableOpacity 
+            style={styles.addButton}
+            onPress={() => router.push('/modal')}
+          >
+            <Ionicons name="add-outline" size={22} color={TERMINAL_AMBER} />
+          </StyledTouchableOpacity>
+        </StyledView>
       </StyledView>
-    </DecryptionGuard>
+
+      {contacts.length === 0 && incomingRequests.length === 0 ? (
+        <StyledView className="flex-1 items-center justify-center px-10">
+          <Ionicons name="scan-outline" size={60} color={COLORS.muted} style={{ opacity: 0.5, marginBottom: 16 }} />
+          <StyledText className="text-muted text-center font-mono text-xs uppercase tracking-[2px]">
+            Your vault is empty. Process a transmission key to establish a secure link.
+          </StyledText>
+        </StyledView>
+      ) : (
+        <FlatList
+          data={contacts}
+          renderItem={renderItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          ListHeaderComponent={
+            incomingRequests.length > 0 ? (
+              <StyledView className="mb-4">
+                <StyledText className="mx-6 mb-3 text-muted font-mono text-[10px] uppercase tracking-[3px]">
+                  Incoming Requests
+                </StyledText>
+                {incomingRequests.map(renderRequestItem)}
+              </StyledView>
+            ) : null
+          }
+        />
+      )}
+    </StyledView>
   );
 }
 

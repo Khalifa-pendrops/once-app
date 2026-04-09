@@ -27,8 +27,16 @@ export function DecryptionGuard({ children }: { children: React.ReactNode }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ type: 'timing', duration: 400 }}
-            className="absolute inset-0 items-center justify-center"
-            style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}
+            style={[
+              StyleSheet.absoluteFillObject,
+              { 
+                backgroundColor: 'rgba(0,0,0,0.85)', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                paddingBottom: 100, // Offset for the Tab Bar to ensure true vertical centering
+                zIndex: 10000,
+              }
+            ]}
           >
             {/* Blur effect would go here if supported/packaged, for now high-opacity black */}
             <StyledView className="items-center px-10">

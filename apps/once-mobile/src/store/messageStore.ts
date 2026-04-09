@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { StorageService } from '../services/storage/secureStorage';
+import { useAuthStore } from './authStore';
 
 export interface ChatMessage {
   id: string; // clientMessageId or server generated
@@ -41,6 +42,12 @@ interface MessageState {
 }
 
 const expiryTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const CHAT_HISTORY_KEY = 'chat_history';
+
+function getScopedChatHistoryKey() {
+  const userId = useAuthStore.getState().userId;
+  return userId ? `${CHAT_HISTORY_KEY}_${userId}` : CHAT_HISTORY_KEY;
+}
 
 export const useMessageStore = create<MessageState>((set, get) => ({
   messages: {},
@@ -64,7 +71,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
     // Serialize and save to secure storage (for MVP, we store all messages together. 
     // In production, SQLite with encrypted columns is better for large histories).
-    await StorageService.setItem('chat_history', JSON.stringify(newMessages));
+    await StorageService.setItem(getScopedChatHistoryKey(), JSON.stringify(newMessages));
     set({ messages: newMessages });
 
     if (message.expiresAt) {
@@ -103,7 +110,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       ),
     };
 
-    await StorageService.setItem('chat_history', JSON.stringify(newMessages));
+    await StorageService.setItem(getScopedChatHistoryKey(), JSON.stringify(newMessages));
     set({ messages: newMessages });
 
     if (expiresAt) {
@@ -132,7 +139,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       [contactId]: messages[contactId].map(m => ({ ...m, isRead: true })),
     };
 
-    await StorageService.setItem('chat_history', JSON.stringify(newMessages));
+    await StorageService.setItem(getScopedChatHistoryKey(), JSON.stringify(newMessages));
     set({ messages: newMessages });
   },
 
@@ -156,7 +163,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       expiryTimers.delete(timerKey);
     }
 
-    await StorageService.setItem('chat_history', JSON.stringify(newMessages));
+    await StorageService.setItem(getScopedChatHistoryKey(), JSON.stringify(newMessages));
     set({ messages: newMessages });
   },
 
@@ -182,7 +189,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       ),
     };
 
-    await StorageService.setItem('chat_history', JSON.stringify(newMessages));
+    await StorageService.setItem(getScopedChatHistoryKey(), JSON.stringify(newMessages));
     set({ messages: newMessages });
 
     if (expiresAt) {
@@ -227,7 +234,7 @@ export const useMessageStore = create<MessageState>((set, get) => ({
 
     if (!matchedContactId || !matchedMessageId) return;
 
-    await StorageService.setItem('chat_history', JSON.stringify(newMessages));
+    await StorageService.setItem(getScopedChatHistoryKey(), JSON.stringify(newMessages));
     set({ messages: newMessages });
 
     if (expiresAt) {
@@ -252,12 +259,11 @@ export const useMessageStore = create<MessageState>((set, get) => ({
       clearTimeout(timer);
     }
     expiryTimers.clear();
-    await StorageService.removeItem('chat_history');
     set({ messages: {} });
   },
 
   initialize: async () => {
-    const data = await StorageService.getItem('chat_history');
+    const data = await StorageService.getItem(getScopedChatHistoryKey());
     if (data) {
       const parsed = JSON.parse(data) as Record<string, ChatMessage[]>;
       const now = Date.now();
@@ -289,8 +295,10 @@ export const useMessageStore = create<MessageState>((set, get) => ({
         }
       }
 
-      await StorageService.setItem('chat_history', JSON.stringify(filteredMessages));
+      await StorageService.setItem(getScopedChatHistoryKey(), JSON.stringify(filteredMessages));
       set({ messages: filteredMessages });
+    } else {
+      set({ messages: {} });
     }
   },
 }));

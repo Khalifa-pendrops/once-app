@@ -124,18 +124,22 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="ritual" options={{ headerShown: false, animation: 'fade' }} />
-        <Stack.Screen name="vault" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="ritual" options={{ headerShown: false, animation: 'fade' }} />
+          <Stack.Screen name="vault" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="chat/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        </Stack>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
