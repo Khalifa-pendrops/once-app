@@ -1,5 +1,4 @@
 import type { FastifyInstance, FastifyPluginAsync } from "fastify";
-import { requireAuth } from "../auth/auth.guard";
 import { listDebugEvents, recordDebugEvent } from "./debugEvent.service";
 
 type DebugEventBody = {
@@ -45,10 +44,33 @@ function escapeHtml(value: unknown) {
     .replace(/'/g, "&#39;");
 }
 
+function extractBearerToken(authorizationHeader: unknown): string | null {
+  if (typeof authorizationHeader !== "string") {
+    return null;
+  }
+
+  const [scheme, token] = authorizationHeader.split(" ");
+  if (scheme !== "Bearer" || !token?.trim()) {
+    return null;
+  }
+
+  return token.trim();
+}
+
 export const debugRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
   app.post<{ Body: DebugEventBody }>(
     "/debug/events",
-    { preHandler: requireAuth },
+    {
+      config: {
+        rateLimit: {
+          max: 30,
+          timeWindow: "1 minute",
+          keyGenerator: (request: any) =>
+            request.headers["x-device-id"] ||
+            request.ip,
+        },
+      },
+    },
     async (request, reply) => {
       const body = request.body ?? {};
 
@@ -59,6 +81,18 @@ export const debugRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         });
       }
 
+      let userId: string | undefined;
+      const bearerToken = extractBearerToken(request.headers.authorization);
+
+      if (bearerToken) {
+        try {
+          const payload = app.jwt.verify<{ sub: string }>(bearerToken);
+          userId = payload.sub;
+        } catch {
+          userId = undefined;
+        }
+      }
+
       const event = await recordDebugEvent({
         severity: body.severity ?? "error",
         source: body.source ?? "mobile",
@@ -67,8 +101,11 @@ export const debugRoutes: FastifyPluginAsync = async (app: FastifyInstance) => {
         stack: body.stack,
         route: body.route,
         requestId: body.requestId,
-        userId: request.user.sub,
-        deviceId: (request as unknown as { deviceId?: string }).deviceId,
+        userId,
+        deviceId:
+          typeof request.headers["x-device-id"] === "string"
+            ? request.headers["x-device-id"]
+            : undefined,
         context: body.context,
       });
 
