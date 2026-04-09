@@ -18,7 +18,17 @@ export function DecryptionGuard({ children }: { children: React.ReactNode }) {
 
   return (
     <StyledView className="flex-1 bg-background">
-      {children}
+      {/* 
+        SCREEN CONTENT: 
+        When the vault is sealed, we explicitly disable pointer events 
+        for everything in the background.
+      */}
+      <StyledView 
+        style={{ flex: 1 }} 
+        pointerEvents={isUnlocked ? "auto" : "none"}
+      >
+        {children}
+      </StyledView>
       
       <AnimatePresence>
         {!isUnlocked && (
@@ -27,18 +37,18 @@ export function DecryptionGuard({ children }: { children: React.ReactNode }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ type: 'timing', duration: 400 }}
+            pointerEvents="auto"
             style={[
               StyleSheet.absoluteFillObject,
               { 
                 backgroundColor: 'rgba(0,0,0,0.85)', 
                 alignItems: 'center', 
                 justifyContent: 'center',
-                paddingBottom: 100, // Offset for the Tab Bar to ensure true vertical centering
+                paddingBottom: 100, 
                 zIndex: 10000,
               }
             ]}
           >
-            {/* Blur effect would go here if supported/packaged, for now high-opacity black */}
             <StyledView className="items-center px-10">
               <Ionicons name="shield-checkmark-outline" size={80} color={COLORS.primary} />
               
@@ -60,7 +70,6 @@ export function DecryptionGuard({ children }: { children: React.ReactNode }) {
               <StyledTouchableOpacity
                 onPress={unlock}
                 activeOpacity={0.8}
-                className=""
                 style={styles.ctaShell}
               >
                 <StyledView style={styles.ctaScanlineTop} />

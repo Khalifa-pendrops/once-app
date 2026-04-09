@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../src/constants/theme';
 import { DecryptionGuard } from '../../src/components/auth/DecryptionGuard';
+import { useAuthStore } from '../../src/store/authStore';
 
 const StyledView = View as any;
 const StyledText = Text as any;
@@ -19,43 +20,31 @@ export default function TabsLayout() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const isUnlocked = useAuthStore(state => state.isUnlocked);
 
   const isVault = pathname === '/' || pathname === '/(tabs)' || pathname === '/(tabs)/index';
   const isStats = pathname === '/stats' || pathname === '/(tabs)/stats';
 
   return (
     <StyledView style={styles.shell}>
-      {/* 
-        CENTRAL SECURITY LAYER: 
-        We wrap the content (Slot) in the DecryptionGuard here at the layout level.
-        This ensures that the "Sealed Vault" screen manages all child screens.
-      */}
       <DecryptionGuard>
         <StyledView style={styles.content}>
           <Slot />
         </StyledView>
       </DecryptionGuard>
 
-      {/* 
-        STABILIZED NAVIGATION:
-        By placing the Navigation Bar as a SIBLING to the DecryptionGuard, 
-        we guarantee that it always sits on top of the security overlay.
-      */}
       <StyledView 
         style={[
           styles.bottomNavContainer, 
-          { bottom: Math.max(insets.bottom, 20) + 80 }
+          { bottom: Math.max(insets.bottom, 20) + 40, opacity: isUnlocked ? 1 : 0.4 }
         ]} 
-        pointerEvents="box-none"
+        pointerEvents={isUnlocked ? "box-none" : "none"}
       >
         <StyledView style={styles.navBar}>
           <StyledTouchableOpacity
             activeOpacity={0.7}
-            pointerEvents="auto"
-            onPress={() => {
-              console.log('Vault tapped');
-              router.replace('/(tabs)' as any);
-            }}
+            disabled={!isUnlocked}
+            onPress={() => router.replace('/(tabs)' as any)}
             style={[styles.navButton, isVault ? styles.navButtonVaultActive : null]}
           >
             <Ionicons
@@ -70,11 +59,8 @@ export default function TabsLayout() {
 
           <StyledTouchableOpacity
             activeOpacity={0.7}
-            pointerEvents="auto"
-            onPress={() => {
-              console.log('Stats tapped');
-              router.replace('/(tabs)/stats' as any);
-            }}
+            disabled={!isUnlocked}
+            onPress={() => router.replace('/(tabs)/stats' as any)}
             style={[styles.navButton, isStats ? styles.navButtonStatsActive : null]}
           >
             <Ionicons
