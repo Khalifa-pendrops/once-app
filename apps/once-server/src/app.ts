@@ -12,6 +12,8 @@ import { keyRoutes } from "./modules/keys/key.routes";
 import { preKeyRoutes } from "./modules/prekeys/prekeys.routes";
 import { userRoutes } from "./modules/users/user.routes";
 import { contactRequestRoutes } from "./modules/contact-requests/contactRequest.routes";
+import { debugRoutes } from "./modules/debug/debug.routes";
+import { recordServerErrorEvent } from "./modules/debug/debugEvent.service";
 
 
 
@@ -33,6 +35,13 @@ export function buildApp(): FastifyInstance {
    //  Register JWT plugin FIRST
   app.register(fastifyJwt, {
     secret: process.env.JWT_SECRET as string,
+  });
+
+  app.addHook("onRequest", async (request) => {
+    request.log = request.log.child({
+      requestId: request.id,
+      route: request.url,
+    });
   });
 
   app.get("/db-health", async (request, reply) => {
@@ -73,10 +82,43 @@ export function buildApp(): FastifyInstance {
   app.register(preKeyRoutes);
   app.register(userRoutes, { prefix: "/users" });
   app.register(contactRequestRoutes);
+  app.register(debugRoutes);
 
 
   // All auth endpoints live under /auth/*
   app.register(authRoutes, { prefix: "/auth" });
+
+  app.setErrorHandler(async (error, request, reply) => {
+    request.log.error({ err: error }, "Unhandled request error");
+    const errorMessage = error instanceof Error ? error.message : "Request failed.";
+
+    await recordServerErrorEvent({
+      err: error,
+      source: "server",
+      severity: "error",
+      route: request.routeOptions?.url || request.url,
+      requestId: request.id,
+      userId: request.user?.sub,
+      deviceId: (request as unknown as { deviceId?: string }).deviceId,
+      context: {
+        method: request.method,
+        url: request.url,
+      },
+    });
+
+    const statusCode =
+      typeof (error as { statusCode?: unknown }).statusCode === "number"
+        ? ((error as { statusCode: number }).statusCode >= 400
+            ? (error as { statusCode: number }).statusCode
+            : 500)
+        : 500;
+
+    return reply.code(statusCode).send({
+      error: statusCode >= 500 ? "INTERNAL_SERVER_ERROR" : "REQUEST_ERROR",
+      message: statusCode >= 500 ? "Something went wrong." : errorMessage,
+      requestId: request.id,
+    });
+  });
 
   return app;
 }

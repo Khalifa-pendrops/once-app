@@ -1,5 +1,6 @@
 import { useAuthStore } from '../../store/authStore';
 import { messageApi } from '../../api/messages';
+import { reportClientError, extractErrorDetails } from '../debug/errorReporter';
 
 // WS URL mapping from HTTPS
 const WS_URL = 'wss://once-app-qdwh.onrender.com/ws';
@@ -69,11 +70,25 @@ class WebSocketClient {
         }
       } catch (err) {
         console.error('[WS] Message parse error:', err);
+        const details = extractErrorDetails(err);
+        void reportClientError({
+          source: 'ws',
+          severity: 'error',
+          code: 'WS_MESSAGE_PARSE_ERROR',
+          message: details.message,
+          stack: details.stack,
+        });
       }
     };
 
     this.socket.onerror = (error) => {
       console.error('[WS] Error:', error);
+      void reportClientError({
+        source: 'ws',
+        severity: 'error',
+        code: 'WS_SOCKET_ERROR',
+        message: 'WebSocket transport error.',
+      });
     };
 
     this.socket.onclose = (event) => {
@@ -130,6 +145,14 @@ class WebSocketClient {
 
     } catch (err) {
       console.error('[WS] Failed to process incoming message:', err);
+      const details = extractErrorDetails(err);
+      void reportClientError({
+        source: 'ws',
+        severity: 'error',
+        code: 'WS_INCOMING_MESSAGE_FAILED',
+        message: details.message,
+        stack: details.stack,
+      });
       return false;
     }
   }
@@ -145,6 +168,14 @@ class WebSocketClient {
       await upsertIncomingRequest(request);
     } catch (err) {
       console.error('[WS] Failed to process incoming contact request:', err);
+      const details = extractErrorDetails(err);
+      void reportClientError({
+        source: 'ws',
+        severity: 'error',
+        code: 'WS_CONTACT_REQUEST_FAILED',
+        message: details.message,
+        stack: details.stack,
+      });
     }
   }
 
@@ -157,6 +188,14 @@ class WebSocketClient {
       await updateContactStatus(request.recipientUserId, 'accepted');
     } catch (err) {
       console.error('[WS] Failed to process accepted contact request:', err);
+      const details = extractErrorDetails(err);
+      void reportClientError({
+        source: 'ws',
+        severity: 'error',
+        code: 'WS_ACCEPTED_REQUEST_FAILED',
+        message: details.message,
+        stack: details.stack,
+      });
     }
   }
 
@@ -169,6 +208,14 @@ class WebSocketClient {
       }
     } catch (err) {
       console.error('[WS] Failed to sync pending messages:', err);
+      const details = extractErrorDetails(err);
+      void reportClientError({
+        source: 'ws',
+        severity: 'warn',
+        code: 'WS_PENDING_SYNC_FAILED',
+        message: details.message,
+        stack: details.stack,
+      });
     }
   }
 
@@ -179,6 +226,14 @@ class WebSocketClient {
       await acknowledgeOutgoingMessage(serverMessageId, Date.now() + ACKNOWLEDGED_MESSAGE_TTL_MS);
     } catch (err) {
       console.error('[WS] Failed to update outgoing acknowledgement:', err);
+      const details = extractErrorDetails(err);
+      void reportClientError({
+        source: 'ws',
+        severity: 'warn',
+        code: 'WS_ACK_SYNC_FAILED',
+        message: details.message,
+        stack: details.stack,
+      });
     }
   }
 

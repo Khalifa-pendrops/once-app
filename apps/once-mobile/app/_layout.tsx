@@ -12,6 +12,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { StorageService, KEYS } from '../src/services/storage/secureStorage';
 import { useAuthStore } from '../src/store/authStore';
 import { wsClient } from '../src/services/ws/wsClient';
+import { registerGlobalErrorHandlers, reportClientError, extractErrorDetails } from '../src/services/debug/errorReporter';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -35,6 +36,10 @@ export default function RootLayout() {
 
   const segments = useSegments();
   const router = useRouter();
+
+  useEffect(() => {
+    registerGlobalErrorHandlers();
+  }, []);
 
   // 1. WebSocket Lifecycle
   useEffect(() => {
@@ -63,6 +68,20 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded, isAuthRestored]);
+
+  useEffect(() => {
+    if (!error) return;
+
+    const details = extractErrorDetails(error);
+    void reportClientError({
+      source: 'mobile',
+      severity: 'fatal',
+      code: 'FONT_LOAD_FAILED',
+      message: details.message,
+      stack: details.stack,
+      route: '_layout',
+    });
+  }, [error]);
 
   // 3. Redirection Logic
   useEffect(() => {

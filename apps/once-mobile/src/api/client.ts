@@ -2,7 +2,7 @@ import axios from 'axios';
 import { Platform } from 'react-native';
 import { StorageService, KEYS } from '../services/storage/secureStorage';
 
-const BASE_URL = 'https://once-app-qdwh.onrender.com';
+export const BASE_URL = 'https://once-app-qdwh.onrender.com';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -34,6 +34,35 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    try {
+      const { reportClientError } = await import('../services/debug/errorReporter');
+      const status = error?.response?.status;
+      const payload = error?.response?.data;
+      const severity = status && status < 500 ? 'warn' : 'error';
+
+      await reportClientError({
+        source: 'api',
+        severity,
+        code: status ? `HTTP_${status}` : 'API_REQUEST_FAILED',
+        message: error?.message || 'API request failed',
+        route: error?.config?.url,
+        context: {
+          method: error?.config?.method,
+          status,
+          response: payload,
+        },
+      });
+    } catch {
+      // Intentionally swallow reporting failures.
+    }
+
     return Promise.reject(error);
   }
 );
