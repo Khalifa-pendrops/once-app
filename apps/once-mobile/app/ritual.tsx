@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { MotiView, MotiText } from 'moti';
 import { CryptoService } from '../src/services/crypto/cryptoService';
@@ -14,6 +15,7 @@ const StyledText = Text as any;
 const StyledTouchableOpacity = TouchableOpacity as any;
 const StyledMotiView = MotiView as any;
 const StyledMotiText = MotiText as any;
+const StyledSafeAreaView = SafeAreaView as any;
 
 const { width } = Dimensions.get('window');
 
@@ -66,7 +68,8 @@ export default function RitualScreen() {
   };
 
   return (
-    <StyledView className="flex-1 bg-background items-center justify-center px-8">
+    <StyledSafeAreaView className="flex-1 bg-background">
+      <StyledView className="flex-1 items-center justify-center px-8">
       <StyledMotiView 
         from={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -123,7 +126,7 @@ export default function RitualScreen() {
              />
           </StyledView>
         )}
-      </StyledMotiView>
-    </StyledView>
+      </StyledView>
+    </StyledSafeAreaView>
   );
 }

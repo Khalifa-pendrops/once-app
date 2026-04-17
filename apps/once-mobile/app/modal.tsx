@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../src/constants/theme';
 import { userApi } from '../src/api/user';
@@ -13,6 +14,7 @@ const StyledView = View as any;
 const StyledText = Text as any;
 const StyledTextInput = TextInput as any;
 const StyledTouchableOpacity = TouchableOpacity as any;
+const StyledSafeAreaView = SafeAreaView as any;
 const TERMINAL_AMBER = '#F6C177';
 const TERMINAL_AMBER_SOFT = 'rgba(246, 193, 119, 0.14)';
 const TERMINAL_CYAN = '#67E8F9';
@@ -74,7 +76,8 @@ export default function AddContactModal() {
   };
 
   return (
-    <StyledView className="flex-1 bg-background py-8 px-6">
+    <StyledSafeAreaView className="flex-1 bg-background">
+      <StyledView className="flex-1 py-8 px-6">
       <StatusBar style="light" />
       
       <StyledView className="items-center mb-8">
@@ -153,7 +156,8 @@ export default function AddContactModal() {
       >
         <StyledText className="text-muted text-base font-mono uppercase tracking-[2px]">Abort</StyledText>
       </StyledTouchableOpacity>
-    </StyledView>
+      </StyledView>
+    </StyledSafeAreaView>
   );
 }
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, Alert, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +22,7 @@ const StyledTextInput = TextInput as any;
 const StyledTouchableOpacity = TouchableOpacity as any;
 const StyledFlatList = FlatList as any;
 const StyledKeyboardAvoidingView = KeyboardAvoidingView as any;
+const StyledSafeAreaView = SafeAreaView as any;
 const TERMINAL_AMBER = '#F6C177';
 const TERMINAL_CYAN = '#67E8F9';
 
@@ -211,75 +213,76 @@ export default function ChatScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1 bg-background"
       >
-        <StatusBar style="light" />
+        <StyledSafeAreaView className="flex-1">
+          <StatusBar style="light" />
 
-        {/* Header */}
-        <StyledView className="flex-row items-center px-6 pt-14 pb-4 border-b border-border/10 bg-background/90 z-10">
-          <StyledTouchableOpacity onPress={() => router.back()} className="mr-4 p-2 -ml-2">
-            <Ionicons name="chevron-back" size={28} color={TERMINAL_AMBER} />
-          </StyledTouchableOpacity>
-          <StyledView className="flex-1">
-            <StyledText className="text-muted text-[10px] font-mono uppercase tracking-[3px] mb-1">
-              secure://relay-thread
-            </StyledText>
-            <StyledText className="font-bold text-lg tracking-tight" style={styles.threadTitle}>
-              {contact.email.split('@')[0]}
-            </StyledText>
-            <StyledText className="text-xs font-mono uppercase tracking-[2px]" style={styles.threadStatus}>
-              E2EE Tunnel Active
-            </StyledText>
-          </StyledView>
-          <StyledView style={styles.threadAvatar}>
-            <Ionicons name="person" size={18} color={TERMINAL_CYAN} />
-          </StyledView>
-        </StyledView>
-
-        {/* Chat Area */}
-        <StyledFlatList
-           ref={flatListRef}
-           data={contactMessages}
-           keyExtractor={(item: ChatMessage) => item.id}
-           renderItem={renderMessage}
-           contentContainerStyle={{ padding: 24, paddingTop: 32 }}
-           showsVerticalScrollIndicator={false}
-           ListEmptyComponent={
-             <StyledView className="items-center justify-center mt-20 opacity-50">
-               <Ionicons name="lock-closed-outline" size={48} color={COLORS.muted} />
-               <StyledText className="text-muted text-center mt-4 px-10 font-mono text-xs uppercase tracking-[2px]">
-                 End-to-end encrypted relay established. Messages are secured with unique x25519 keys.
-               </StyledText>
-             </StyledView>
-           }
-        />
-
-        {/* Input Area */}
-        <StyledView className="px-6 py-4 border-t border-border/10 bg-background pb-10">
-          <StyledView style={styles.inputShell}>
-            <StyledTextInput
-              className="flex-1 text-white text-base min-h-[40px]"
-              placeholder="Encrypt message..."
-              placeholderTextColor={COLORS.muted}
-              value={inputText}
-              onChangeText={setInputText}
-              onSubmitEditing={handleSend}
-              returnKeyType="send"
-              maxLength={1000}
-            />
-            <StyledTouchableOpacity 
-              disabled={!inputText.trim()}
-              onPress={handleSend}
-              className="w-10 h-10 items-center justify-center ml-2"
-              style={inputText.trim() ? styles.sendButtonActive : styles.sendButtonIdle}
-            >
-              <Ionicons 
-                name="arrow-up" 
-                size={20} 
-                color={inputText.trim() ? TERMINAL_AMBER : COLORS.muted} 
-              />
+          {/* Header */}
+          <StyledView className="flex-row items-center px-6 pt-4 pb-4 border-b border-border/10 bg-background/90 z-10">
+            <StyledTouchableOpacity onPress={() => router.back()} className="mr-4 p-2 -ml-2">
+              <Ionicons name="chevron-back" size={28} color={TERMINAL_AMBER} />
             </StyledTouchableOpacity>
+            <StyledView className="flex-1">
+              <StyledText className="text-muted text-[10px] font-mono uppercase tracking-[3px] mb-1">
+                secure://relay-thread
+              </StyledText>
+              <StyledText className="font-bold text-lg tracking-tight" style={styles.threadTitle}>
+                {contact.email.split('@')[0]}
+              </StyledText>
+              <StyledText className="text-xs font-mono uppercase tracking-[2px]" style={styles.threadStatus}>
+                E2EE Tunnel Active
+              </StyledText>
+            </StyledView>
+            <StyledView style={styles.threadAvatar}>
+              <Ionicons name="person" size={18} color={TERMINAL_CYAN} />
+            </StyledView>
           </StyledView>
-        </StyledView>
 
+          {/* Chat Area */}
+          <StyledFlatList
+             ref={flatListRef}
+             data={contactMessages}
+             keyExtractor={(item: ChatMessage) => item.id}
+             renderItem={renderMessage}
+             contentContainerStyle={{ padding: 24, paddingTop: 32 }}
+             showsVerticalScrollIndicator={false}
+             ListEmptyComponent={
+               <StyledView className="items-center justify-center mt-20 opacity-50">
+                 <Ionicons name="lock-closed-outline" size={48} color={COLORS.muted} />
+                 <StyledText className="text-muted text-center mt-4 px-10 font-mono text-xs uppercase tracking-[2px]">
+                   End-to-end encrypted relay established. Messages are secured with unique x25519 keys.
+                 </StyledText>
+               </StyledView>
+             }
+          />
+
+          {/* Input Area */}
+          <StyledView className="px-6 py-4 border-t border-border/10 bg-background">
+            <StyledView style={styles.inputShell}>
+              <StyledTextInput
+                className="flex-1 text-white text-base min-h-[40px]"
+                placeholder="Encrypt message..."
+                placeholderTextColor={COLORS.muted}
+                value={inputText}
+                onChangeText={setInputText}
+                onSubmitEditing={handleSend}
+                returnKeyType="send"
+                maxLength={1000}
+              />
+              <StyledTouchableOpacity 
+                disabled={!inputText.trim()}
+                onPress={handleSend}
+                className="w-10 h-10 items-center justify-center ml-2"
+                style={inputText.trim() ? styles.sendButtonActive : styles.sendButtonIdle}
+              >
+                <Ionicons 
+                  name="arrow-up" 
+                  size={20} 
+                  color={inputText.trim() ? TERMINAL_AMBER : COLORS.muted} 
+                />
+              </StyledTouchableOpacity>
+            </StyledView>
+          </StyledView>
+        </StyledSafeAreaView>
       </StyledKeyboardAvoidingView>
     </DecryptionGuard>
   );

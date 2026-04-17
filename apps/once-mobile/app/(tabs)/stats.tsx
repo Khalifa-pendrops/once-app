@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { ScrollView, View, Text, StyleSheet } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useContactStore } from '../../src/store/contactStore';
 import { useMessageStore } from '../../src/store/messageStore';
@@ -14,6 +15,7 @@ const TERMINAL_CYAN = '#67E8F9';
 const TERMINAL_MUTED = '#8B8B8B';
 
 export default function StatsScreen() {
+  const insets = useSafeAreaInsets();
   const initializeContacts = useContactStore((state) => state.initialize);
   const contacts = useContactStore((state) => state.contacts);
   const incomingRequests = useContactStore((state) => state.incomingRequests);
@@ -98,7 +100,11 @@ export default function StatsScreen() {
   ];
 
   return (
-    <StyledScrollView className="flex-1 bg-background" contentContainerStyle={styles.content}>
+    <SafeAreaView className="flex-1 bg-background" edges={['top', 'left', 'right']}>
+      <StyledScrollView 
+        className="flex-1" 
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}
+      >
       <StyledView className="mb-8">
         <StyledText className="text-muted font-mono text-[10px] uppercase tracking-[3px] mb-2">
           secure://vault-telemetry
@@ -200,12 +206,13 @@ export default function StatsScreen() {
         )}
       </StyledView>
     </StyledScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   content: {
-    paddingTop: 56,
+    paddingTop: 24,
     paddingHorizontal: 24,
     paddingBottom: 120,
   },

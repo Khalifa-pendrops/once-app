@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StatusBar, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { DecryptionGuard } from '../../src/components/auth/DecryptionGuard';
 import { COLORS } from '../../src/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +19,6 @@ const TERMINAL_CYAN = '#67E8F9';
 
 export default function ChatListScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const logout = useAuthStore((state) => state.logout);
   const resetContacts = useContactStore((state) => state.reset);
   const resetMessages = useMessageStore((state) => state.reset);
@@ -167,7 +166,7 @@ export default function ChatListScreen() {
 
   return (
     <DecryptionGuard>
-      <StyledView className="flex-1 bg-background" style={{ paddingTop: insets.top + 14 }}>
+      <SafeAreaView className="flex-1 bg-background" edges={['top']} style={{ paddingTop: 14 }}>
         <StatusBar barStyle="light-content" />
 
         <StyledView className="px-6 mb-8 flex-row justify-between items-center">
@@ -221,7 +220,7 @@ export default function ChatListScreen() {
             }
           />
         )}
-      </StyledView>
+      </SafeAreaView>
     </DecryptionGuard>
   );
 }
