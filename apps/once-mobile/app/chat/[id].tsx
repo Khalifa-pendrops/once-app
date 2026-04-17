@@ -13,6 +13,7 @@ import { messageApi } from '../../src/api/messages';
 import { COLORS } from '../../src/constants/theme';
 import { DecryptionGuard } from '../../src/components/auth/DecryptionGuard';
 import { keyApi } from '../../src/api/keys';
+import { getMaskedIdentity } from '../../src/utils/identity';
 
 const OPENED_MESSAGE_TTL_MS = 5000;
 
@@ -226,7 +227,7 @@ export default function ChatScreen() {
                 secure://relay-thread
               </StyledText>
               <StyledText className="font-bold text-lg tracking-tight" style={styles.threadTitle}>
-                {contact.email.split('@')[0]}
+                {getMaskedIdentity(contact.publicKey)}
               </StyledText>
               <StyledText className="text-xs font-mono uppercase tracking-[2px]" style={styles.threadStatus}>
                 E2EE Tunnel Active

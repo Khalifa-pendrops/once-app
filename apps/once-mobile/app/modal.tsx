@@ -3,12 +3,14 @@ import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, Alert, Styl
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { CyberLoader } from '../src/components/common/CyberLoader';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../src/constants/theme';
 import { userApi } from '../src/api/user';
 import { keyApi } from '../src/api/keys';
 import { useContactStore } from '../src/store/contactStore';
 import { contactRequestApi } from '../src/api/contactRequests';
+import { getMaskedIdentity } from '../src/utils/identity';
 
 const StyledView = View as any;
 const StyledText = Text as any;
@@ -88,7 +90,7 @@ export default function AddContactModal() {
           secure://relay-forge
         </StyledText>
         <StyledText className="text-3xl font-bold tracking-tight" style={styles.heroTitle}>
-          Forge Connection
+          {email ? getMaskedIdentity(email) : 'Forge Connection'}
         </StyledText>
         <StyledText className="text-muted text-center mt-3 font-mono text-xs uppercase tracking-[2px]">
           Enter a contact's email to establish a secure, end-to-end encrypted relay.
@@ -134,8 +136,8 @@ export default function AddContactModal() {
         <StyledView style={styles.ctaNotchLeft} />
         <StyledView style={styles.ctaNotchRight} />
         {loading ? (
-          <StyledView className="py-4">
-            <ActivityIndicator color={TERMINAL_AMBER} />
+          <StyledView className="py-4 items-center">
+            <CyberLoader type="scan" label="HANDSHAKING" size={20} />
           </StyledView>
         ) : (
           <StyledView className="flex-row items-center justify-center px-5 py-4">

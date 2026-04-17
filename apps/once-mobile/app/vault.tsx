@@ -13,6 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MotiView, AnimatePresence } from 'moti';
+import { CyberLoader } from '../src/components/common/CyberLoader';
 import * as Haptics from 'expo-haptics';
 import { authApi } from '../src/api/auth';
 import { useAuthStore } from '../src/store/authStore';
@@ -198,7 +199,7 @@ export default function VaultAuth() {
               <StyledView style={styles.ctaNotchRight} />
               <StyledView className="items-center justify-center flex-row px-5 py-4">
                 {isLoading ? (
-                  <ActivityIndicator color={TERMINAL_AMBER} />
+                  <CyberLoader type="decrypt" label={isLogin ? 'UNLOCKING' : 'FORGING'} />
                 ) : (
                   <>
                     <StyledText className="font-mono text-[10px] uppercase mr-3" style={styles.ctaPrefix}>

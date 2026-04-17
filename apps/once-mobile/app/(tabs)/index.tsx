@@ -10,6 +10,7 @@ import { contactRequestApi } from '../../src/api/contactRequests';
 import { keyApi } from '../../src/api/keys';
 import { useAuthStore } from '../../src/store/authStore';
 import { useMessageStore } from '../../src/store/messageStore';
+import { getMaskedIdentity } from '../../src/utils/identity';
 
 const StyledView = View as any;
 const StyledText = Text as any;
@@ -20,6 +21,7 @@ const TERMINAL_CYAN = '#67E8F9';
 export default function ChatListScreen() {
   const router = useRouter();
   const logout = useAuthStore((state) => state.logout);
+  const userId = useAuthStore((state) => state.userId);
   const resetContacts = useContactStore((state) => state.reset);
   const resetMessages = useMessageStore((state) => state.reset);
   const {
@@ -46,11 +48,41 @@ export default function ChatListScreen() {
         await setIncomingRequests(incoming.requests);
         await setOutgoingRequests(outgoing.requests);
 
-        for (const request of outgoing.requests) {
-          await updateContactStatus(
-            request.recipientUserId,
-            request.status === 'accepted' ? 'accepted' : 'pending'
-          );
+        // Combine all requests to find accepted handshakes
+        const allRequests = [...incoming.requests, ...outgoing.requests];
+        
+        for (const request of allRequests) {
+          if (request.status === 'accepted') {
+            const peerId = request.requesterUserId === userId ? request.recipientUserId : request.requesterUserId;
+            const peerEmail = request.requesterUserId === userId ? request.recipientEmail : request.requesterEmail;
+            
+            // Use the store's current state to avoid race conditions with multiple updates
+            const currentContacts = useContactStore.getState().contacts;
+            const existingContact = currentContacts.find(c => c.id === peerId);
+            
+            if (!existingContact || existingContact.status === 'pending') {
+              // Node has been accepted but local state is missing or stale
+              try {
+                const keyData = await keyApi.getContactKeys(peerId);
+                if (keyData.keys?.length > 0) {
+                  const primaryKey = keyData.keys[0];
+                  await addContact({
+                    id: peerId,
+                    email: peerEmail,
+                    deviceId: primaryKey.deviceId,
+                    publicKey: primaryKey.publicKey,
+                    status: 'accepted',
+                  });
+                }
+              } catch (e) {
+                console.warn('Failed to auto-discover keys for node:', peerId);
+              }
+            }
+          } else if (request.status === 'pending' && request.requesterUserId === userId) {
+            // Only force pending status for OUTGOING requests we sent 
+            // (Incoming pending handled by renderRequestItem)
+            await updateContactStatus(request.recipientUserId, 'pending');
+          }
         }
       } catch (error) {
         console.error('Failed to sync contact requests:', error);
@@ -58,7 +90,7 @@ export default function ChatListScreen() {
     };
 
     void syncVaultState();
-  }, [initialize, setIncomingRequests, setOutgoingRequests, updateContactStatus]);
+  }, [initialize, setIncomingRequests, setOutgoingRequests, updateContactStatus, userId]);
 
   const handleAcceptRequest = async (request: ContactRequest) => {
     try {
@@ -126,7 +158,7 @@ export default function ChatListScreen() {
         </StyledText>
         <StyledView className="flex-row justify-between items-center mb-1">
           <StyledText className="font-bold text-lg tracking-tight" style={styles.nodeName}>
-            {item.email.split('@')[0]}
+            {getMaskedIdentity(item.publicKey)}
           </StyledText>
           <StyledText className="text-xs font-mono uppercase tracking-[2px]" style={styles.nodeStatus}>
             {item.status === 'accepted' ? 'armed' : 'pending'}
@@ -145,7 +177,7 @@ export default function ChatListScreen() {
         inbound://handshake
       </StyledText>
       <StyledText className="font-bold text-lg tracking-tight mb-1" style={styles.nodeName}>
-        {request.requesterEmail}
+        {getMaskedIdentity(request.id)}
       </StyledText>
       <StyledText className="text-sm font-mono mb-4" style={styles.nodeKey}>
         {'> remote node requests secure relay access'}

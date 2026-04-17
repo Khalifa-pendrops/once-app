@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
-import { MotiView, MotiText } from 'moti';
+import { MotiView, MotiText, AnimatePresence } from 'moti';
 import { CryptoService } from '../src/services/crypto/cryptoService';
 import { StorageService } from '../src/services/storage/secureStorage';
 import { useAuthStore } from '../src/store/authStore';
@@ -111,12 +111,18 @@ export default function RitualScreen() {
           </StyledView>
         </StyledTouchableOpacity>
 
-        <StyledMotiText 
-          animate={{ opacity: isGenerating ? 1 : 0.5 }}
-          className="text-safety mt-12 font-mono"
-        >
-          {status}
-        </StyledMotiText>
+        <AnimatePresence mode="wait">
+          <StyledMotiText 
+            key={status}
+            from={{ opacity: 0, translateY: 10 }}
+            animate={{ opacity: 1, translateY: 0 }}
+            exit={{ opacity: 0, translateY: -10 }}
+            transition={{ type: 'timing', duration: 300 }}
+            className="text-safety mt-12 font-mono text-center uppercase tracking-[2px]"
+          >
+            {isGenerating ? `> ${status}` : status}
+          </StyledMotiText>
+        </AnimatePresence>
 
         {isGenerating && (
           <StyledView className="mt-4 w-64 h-1 bg-surface rounded-full overflow-hidden">

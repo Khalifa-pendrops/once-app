@@ -193,7 +193,7 @@ export const contactRequestRoutes: FastifyPluginAsync = async (app: FastifyInsta
       const requests = await prisma.contactRequest.findMany({
         where: {
           recipientUserId,
-          status: "PENDING",
+          status: { in: ["PENDING", "ACCEPTED"] },
         },
         include: {
           requester: { select: { id: true, email: true } },

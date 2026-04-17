@@ -79,6 +79,13 @@ export const useContactStore = create<ContactState>((set, get) => ({
 
   updateContactStatus: async (userId: string, status: Contact['status']) => {
     const { contacts } = get();
+    const contact = contacts.find(c => c.id === userId);
+    
+    // Protection: Never downgrade from 'accepted' back to 'pending' during sync
+    if (contact?.status === 'accepted' && status === 'pending') {
+      return;
+    }
+
     const newContacts = contacts.map(c => 
       c.id === userId ? { ...c, status } : c
     );
