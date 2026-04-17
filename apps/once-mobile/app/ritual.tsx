@@ -126,7 +126,8 @@ export default function RitualScreen() {
              />
           </StyledView>
         )}
-      </StyledView>
-    </StyledSafeAreaView>
-  );
+      </StyledMotiView>
+    </StyledView>
+  </StyledSafeAreaView>
+);
 }

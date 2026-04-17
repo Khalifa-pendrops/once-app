@@ -2,9 +2,7 @@ import axios from 'axios';
 import { Platform } from 'react-native';
 import { StorageService, KEYS } from '../services/storage/secureStorage';
 
-export const BASE_URL = __DEV__ 
-  ? 'http://localhost:8080' 
-  : 'https://once-app-qdwh.onrender.com';
+export const BASE_URL = 'https://once-app-qdwh.onrender.com';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
